@@ -12,8 +12,8 @@ export interface Ticket {
   id: number;
   title: string;
   description: string;
-  status: 'pending' | 'in_progress' | 'resolved' | 'closed';
-  priority: 'low' | 'medium' | 'high' | 'critical';
+  status: TicketStatus;
+  priority: TicketPriority | null;
   requestedBy: number;
   assignedTo: number | null;
   resolutionDate: string | null;
@@ -38,12 +38,46 @@ export interface TicketHistory {
   id: number;
   ticketId: number;
   userId: number;
+  action?: TicketHistoryAction | null;
+  actorRole?: User['role'] | null;
   field: string;
   oldValue: string | null;
   newValue: string;
+  previousStatus?: string | null;
+  newStatus?: string | null;
+  assignedTechnicianId?: number | null;
+  priority?: string | null;
+  comment?: string | null;
+  solution?: string | null;
   createdAt: string;
   author?: User;
 }
+
+export type TicketStatus =
+  | 'open'
+  | 'pending_assignment'
+  | 'assigned'
+  | 'in_progress'
+  | 'on_hold'
+  | 'resolved'
+  | 'closed'
+  | 'canceled'
+  | 'pending';
+
+export type TicketPriority = 'low' | 'medium' | 'high' | 'critical';
+
+export type TicketHistoryAction =
+  | 'ticket_created'
+  | 'ticket_assigned'
+  | 'priority_defined'
+  | 'status_updated'
+  | 'comment_added'
+  | 'diagnosis_registered'
+  | 'solution_registered'
+  | 'ticket_resolved'
+  | 'ticket_closed'
+  | 'ticket_reassigned'
+  | 'follow_up_added';
 
 export interface Asset {
   id: number;
@@ -92,21 +126,6 @@ export interface Extension {
   assignedUser?: User | null;
   phone?: Asset | null;
 }
-
-export interface Consumable {
-  id: number;
-  name: string;
-  type: ConsumableType;
-  stock: number;
-  minStock: number;
-  status: 'available' | 'low' | 'out_of_stock';
-  entryDate: string | null;
-  observations: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export type ConsumableType = 'toner' | 'keyboard' | 'mouse' | 'cable' | 'adapter' | 'supplies' | 'other';
 
 export interface Maintenance {
   id: number;
@@ -180,4 +199,31 @@ export interface DashboardStats {
     completed: number;
     overdue: number;
   };
+}
+
+export interface DashboardSummary {
+  openTickets: number;
+  inProgressTickets: number;
+  criticalTickets: number;
+  resolvedThisMonth: number;
+  totalAssets: number;
+  assetsInMaintenance: number;
+  totalNetworkPoints: number;
+  inactiveNetworkPoints: number;
+}
+
+export interface DashboardStatusDatum {
+  status: Ticket['status'];
+  value: number;
+}
+
+export interface DashboardMonthDatum {
+  month: string;
+  label: string;
+  value: number;
+}
+
+export interface DashboardCategoryDatum {
+  category: string;
+  value: number;
 }

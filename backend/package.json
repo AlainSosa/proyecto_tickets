@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "tsx watch src/app.ts",
+    "dev": "npm run migrate && npm run seed && npm run dev:server",
+    "dev:server": "tsx watch src/app.ts",
     "build": "tsc",
     "start": "node dist/app.js",
     "migrate": "tsx src/database/migrate.ts",

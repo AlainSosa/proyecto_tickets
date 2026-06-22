@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface PaginationProps {
   page: number;
@@ -7,12 +8,14 @@ interface PaginationProps {
 }
 
 export function Pagination({ page, totalPages, onPageChange }: PaginationProps) {
+  const { t } = useLanguage();
+
   if (totalPages <= 1) return null;
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-t">
-      <p className="text-sm text-gray-500 dark:text-gray-400">
-        Page {page} of {totalPages}
+    <div className="flex items-center justify-between border-t px-4 py-3">
+      <p className="text-sm text-slate-500 dark:text-slate-400">
+        {t('page')} {page} {t('of')} {totalPages}
       </p>
       <div className="flex items-center gap-2">
         <button
@@ -29,10 +32,10 @@ export function Pagination({ page, totalPages, onPageChange }: PaginationProps) 
             <button
               key={pageNum}
               onClick={() => onPageChange(pageNum)}
-              className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                 pageNum === page
-                  ? 'bg-brand-600 text-white'
-                  : 'hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400'
+                  ? 'bg-brand-600 text-white shadow-button'
+                  : 'text-slate-600 hover:bg-brand-50 hover:text-brand-700 dark:text-slate-400 dark:hover:bg-slate-800'
               }`}
             >
               {pageNum}

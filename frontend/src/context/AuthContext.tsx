@@ -7,7 +7,7 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (credentials: LoginCredentials) => Promise<void>;
+  login: (credentials: LoginCredentials, rememberMe?: boolean) => Promise<void>;
   logout: () => void;
 }
 
@@ -20,8 +20,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const initAuth = async () => {
-      const storedToken = localStorage.getItem('token');
-      const storedUser = localStorage.getItem('user');
+      const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
       if (!storedToken || !storedUser) {
         setIsLoading(false);
         return;
@@ -29,12 +29,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const response = await api.get<{ success: boolean; data: User }>('/auth/profile');
         const userData = response.data.data;
-        localStorage.setItem('user', JSON.stringify(userData));
+        const storage = localStorage.getItem('token') ? localStorage : sessionStorage;
+        storage.setItem('user', JSON.stringify(userData));
         setToken(storedToken);
         setUser(userData);
       } catch {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
       } finally {
         setIsLoading(false);
       }
@@ -46,6 +49,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const handleUnauthorized = () => {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('user');
       setToken(null);
       setUser(null);
     };
@@ -53,14 +58,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('auth:unauthorized', handleUnauthorized);
   }, []);
 
-  const login = async (credentials: LoginCredentials) => {
+  const login = async (credentials: LoginCredentials, rememberMe = false) => {
     const response = await api.post<{ success: boolean; data: AuthResponse }>(
       '/auth/login',
       credentials
     );
     const { token: newToken, user: userData } = response.data.data;
-    localStorage.setItem('token', newToken);
-    localStorage.setItem('user', JSON.stringify(userData));
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
+    const storage = rememberMe ? localStorage : sessionStorage;
+    storage.setItem('token', newToken);
+    storage.setItem('user', JSON.stringify(userData));
     setToken(newToken);
     setUser(userData);
   };
@@ -68,6 +78,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
     setToken(null);
     setUser(null);
   }, []);

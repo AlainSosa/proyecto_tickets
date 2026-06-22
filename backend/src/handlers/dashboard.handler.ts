@@ -6,5 +6,13 @@ const router = Router();
 const controller = new DashboardController();
 
 router.get('/', authenticate, controller.getStats.bind(controller));
+router.get('/summary', authenticate, controller.getSummary.bind(controller));
+router.get('/tickets-by-status', authenticate, controller.getTicketsByStatus.bind(controller));
+router.get('/tickets-by-month', authenticate, controller.getTicketsByMonth.bind(controller));
+router.get('/tickets-by-category', authenticate, controller.getTicketsByCategory.bind(controller));
+router.get('/recent-tickets', authenticate, controller.getRecentTickets.bind(controller));
+router.get('/critical-tickets', authenticate, controller.getCriticalTickets.bind(controller));
+router.get('/maintenance-assets', authenticate, controller.getMaintenanceAssets.bind(controller));
+router.get('/inactive-network-points', authenticate, controller.getInactiveNetworkPoints.bind(controller));
 
 export default router;

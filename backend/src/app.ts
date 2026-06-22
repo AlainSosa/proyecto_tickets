@@ -5,6 +5,7 @@ import { sequelize, testConnection } from './database/connection';
 import { setupAssociations } from './database/models/associations';
 import { errorHandler } from './middlewares/errorHandler';
 import routes from './routes';
+import dashboardHandler from './handlers/dashboard.handler';
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use('/api/v1', routes);
+app.use('/api/dashboard', dashboardHandler);
 
 app.use(errorHandler);
 

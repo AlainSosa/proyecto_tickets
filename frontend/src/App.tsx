@@ -3,17 +3,19 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { LanguageProvider } from './context/LanguageContext';
 import { Layout } from './components/layout/Layout';
 import { ProtectedRoute } from './components/shared/ProtectedRoute';
 import { LoginPage } from './pages/auth/LoginPage';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { TicketsPage } from './pages/tickets/TicketsPage';
+import { MyTicketStatusPage } from './pages/tickets/MyTicketStatusPage';
 import { TicketDetailPage } from './pages/tickets/TicketDetailPage';
 import { AssetsPage } from './pages/assets/AssetsPage';
 import { NetworkPage } from './pages/network/NetworkPage';
 import { TelephonyPage } from './pages/telephony/TelephonyPage';
-import { ConsumablesPage } from './pages/consumables/ConsumablesPage';
 import { MaintenancePage } from './pages/maintenance/MaintenancePage';
+import { ReportsPage } from './pages/reports/ReportsPage';
 import { UsersPage } from './pages/users/UsersPage';
 
 function ScrollToTop() {
@@ -33,8 +35,9 @@ function RootRedirect() {
 export default function App() {
   return (
     <BrowserRouter>
-      <ThemeProvider>
-        <AuthProvider>
+      <LanguageProvider>
+        <ThemeProvider>
+          <AuthProvider>
           <ScrollToTop />
           <Toaster
             position="top-right"
@@ -59,6 +62,7 @@ export default function App() {
             >
               <Route path="/dashboard" element={<ProtectedRoute roles={['admin', 'technician']}><DashboardPage /></ProtectedRoute>} />
               <Route path="/tickets" element={<ProtectedRoute roles={['admin', 'technician', 'user']}><TicketsPage /></ProtectedRoute>} />
+              <Route path="/my-ticket-status" element={<ProtectedRoute roles={['user']}><MyTicketStatusPage /></ProtectedRoute>} />
               <Route path="/tickets/:id" element={<ProtectedRoute roles={['admin', 'technician', 'user']}><TicketDetailPage /></ProtectedRoute>} />
               <Route
                 path="/assets"
@@ -85,18 +89,18 @@ export default function App() {
                 }
               />
               <Route
-                path="/consumables"
-                element={
-                  <ProtectedRoute roles={['admin', 'technician']}>
-                    <ConsumablesPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
                 path="/maintenance"
                 element={
                   <ProtectedRoute roles={['admin', 'technician']}>
                     <MaintenancePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/reports"
+                element={
+                  <ProtectedRoute roles={['admin', 'technician']}>
+                    <ReportsPage />
                   </ProtectedRoute>
                 }
               />
@@ -110,10 +114,11 @@ export default function App() {
               />
             </Route>
 
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<RootRedirect />} />
           </Routes>
-        </AuthProvider>
-      </ThemeProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </LanguageProvider>
     </BrowserRouter>
   );
 }

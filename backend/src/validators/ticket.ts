@@ -5,19 +5,54 @@ import { ValidationError } from '../utils/errors';
 const createTicketSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters').max(200),
   description: z.string().min(10, 'Description must be at least 10 characters'),
-  priority: z.enum(['low', 'medium', 'high', 'critical']).optional(),
 });
+
+const ticketStatusSchema = z.enum(['open', 'pending_assignment', 'assigned', 'in_progress', 'on_hold', 'resolved', 'closed', 'canceled', 'pending']);
+const ticketPrioritySchema = z.enum(['low', 'medium', 'high', 'critical']);
 
 const updateTicketSchema = z.object({
   title: z.string().min(5).max(200).optional(),
   description: z.string().min(10).optional(),
-  status: z.enum(['pending', 'in_progress', 'resolved', 'closed']).optional(),
-  priority: z.enum(['low', 'medium', 'high', 'critical']).optional(),
+  status: ticketStatusSchema.optional(),
+  priority: ticketPrioritySchema.nullable().optional(),
   assignedTo: z.number().int().positive().nullable().optional(),
+  comment: z.string().optional(),
+  diagnosis: z.string().optional(),
+  solution: z.string().optional(),
 });
 
 const addCommentSchema = z.object({
   comment: z.string().min(1, 'Comment cannot be empty'),
+});
+
+const assignTicketSchema = z.object({
+  assignedTo: z.number().int().positive(),
+  priority: ticketPrioritySchema.nullable().optional(),
+});
+
+const prioritySchema = z.object({
+  priority: ticketPrioritySchema,
+});
+
+const statusSchema = z.object({
+  status: ticketStatusSchema,
+  comment: z.string().optional(),
+});
+
+const followUpSchema = z.object({
+  comment: z.string().optional(),
+  diagnosis: z.string().optional(),
+  solution: z.string().optional(),
+}).refine((data) => data.comment || data.diagnosis || data.solution, {
+  message: 'At least one follow-up field is required',
+});
+
+const solutionSchema = z.object({
+  solution: z.string().min(1, 'Solution cannot be empty'),
+});
+
+const closeTicketSchema = z.object({
+  comment: z.string().optional(),
 });
 
 export function validateCreateTicket(req: Request, _res: Response, next: NextFunction): void {
@@ -40,6 +75,39 @@ export function validateUpdateTicket(req: Request, _res: Response, next: NextFun
 
 export function validateComment(req: Request, _res: Response, next: NextFunction): void {
   const result = addCommentSchema.safeParse(req.body);
+  if (!result.success) {
+    throw new ValidationError(formatErrors(result.error.errors));
+  }
+  req.body = result.data;
+  next();
+}
+
+export function validateAssignTicket(req: Request, _res: Response, next: NextFunction): void {
+  validateWithSchema(assignTicketSchema, req, next);
+}
+
+export function validatePriority(req: Request, _res: Response, next: NextFunction): void {
+  validateWithSchema(prioritySchema, req, next);
+}
+
+export function validateStatus(req: Request, _res: Response, next: NextFunction): void {
+  validateWithSchema(statusSchema, req, next);
+}
+
+export function validateFollowUp(req: Request, _res: Response, next: NextFunction): void {
+  validateWithSchema(followUpSchema, req, next);
+}
+
+export function validateSolution(req: Request, _res: Response, next: NextFunction): void {
+  validateWithSchema(solutionSchema, req, next);
+}
+
+export function validateCloseTicket(req: Request, _res: Response, next: NextFunction): void {
+  validateWithSchema(closeTicketSchema, req, next);
+}
+
+function validateWithSchema(schema: z.ZodTypeAny, req: Request, next: NextFunction): void {
+  const result = schema.safeParse(req.body);
   if (!result.success) {
     throw new ValidationError(formatErrors(result.error.errors));
   }

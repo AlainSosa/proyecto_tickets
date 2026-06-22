@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { TicketService } from '../services/ticket.service';
 import { sendSuccess, sendPaginated } from '../utils/response';
+import { ForbiddenError } from '../utils/errors';
 
 const ticketService = new TicketService();
 
@@ -28,7 +29,8 @@ export class TicketController {
       const requestedBy = req.query.requestedBy ? parseInt(req.query.requestedBy as string) : undefined;
       const assignedTo = req.query.assignedTo ? parseInt(req.query.assignedTo as string) : undefined;
 
-      const { tickets, total } = await ticketService.findAll({ page, limit, status, priority, search, requestedBy, assignedTo });
+      const effectiveRequestedBy = req.user!.role === 'user' ? req.user!.id : requestedBy;
+      const { tickets, total } = await ticketService.findAll({ page, limit, status, priority, search, requestedBy: effectiveRequestedBy, assignedTo });
       sendPaginated(res, tickets, total, page, limit);
     } catch (error) {
       next(error);
@@ -38,6 +40,9 @@ export class TicketController {
   async findById(req: Request, res: Response, next: NextFunction) {
     try {
       const ticket = await ticketService.findById(parseInt(req.params.id));
+      if (req.user!.role === 'user' && ticket.requestedBy !== req.user!.id) {
+        throw new ForbiddenError('You can only access your own tickets');
+      }
       sendSuccess(res, ticket);
     } catch (error) {
       next(error);
@@ -46,8 +51,83 @@ export class TicketController {
 
   async update(req: Request, res: Response, next: NextFunction) {
     try {
-      const ticket = await ticketService.update(parseInt(req.params.id), req.body, req.user!.id);
+      const ticket = await ticketService.update(parseInt(req.params.id), req.body, {
+        userId: req.user!.id,
+        role: req.user!.role,
+      });
       sendSuccess(res, ticket, 'Ticket updated');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async assign(req: Request, res: Response, next: NextFunction) {
+    try {
+      const ticket = await ticketService.assign(parseInt(req.params.id), req.body.assignedTo, req.body.priority ?? null, {
+        userId: req.user!.id,
+        role: req.user!.role,
+      });
+      sendSuccess(res, ticket, 'Ticket assigned');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async setPriority(req: Request, res: Response, next: NextFunction) {
+    try {
+      const ticket = await ticketService.setPriority(parseInt(req.params.id), req.body.priority, {
+        userId: req.user!.id,
+        role: req.user!.role,
+      });
+      sendSuccess(res, ticket, 'Ticket priority updated');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async changeStatus(req: Request, res: Response, next: NextFunction) {
+    try {
+      const ticket = await ticketService.changeStatus(parseInt(req.params.id), req.body.status, {
+        userId: req.user!.id,
+        role: req.user!.role,
+      }, req.body.comment);
+      sendSuccess(res, ticket, 'Ticket status updated');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async addFollowUp(req: Request, res: Response, next: NextFunction) {
+    try {
+      const ticket = await ticketService.addFollowUp(parseInt(req.params.id), {
+        userId: req.user!.id,
+        role: req.user!.role,
+      }, req.body);
+      sendSuccess(res, ticket, 'Ticket follow-up added', 201);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async resolve(req: Request, res: Response, next: NextFunction) {
+    try {
+      const ticket = await ticketService.resolve(parseInt(req.params.id), {
+        userId: req.user!.id,
+        role: req.user!.role,
+      }, req.body.solution);
+      sendSuccess(res, ticket, 'Ticket resolved');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async close(req: Request, res: Response, next: NextFunction) {
+    try {
+      const ticket = await ticketService.close(parseInt(req.params.id), {
+        userId: req.user!.id,
+        role: req.user!.role,
+      }, req.body.comment);
+      sendSuccess(res, ticket, 'Ticket closed');
     } catch (error) {
       next(error);
     }
@@ -64,8 +144,17 @@ export class TicketController {
 
   async addComment(req: Request, res: Response, next: NextFunction) {
     try {
+      const ticketId = parseInt(req.params.id);
+      const ticket = await ticketService.findById(ticketId);
+      if (req.user!.role === 'user' && ticket.requestedBy !== req.user!.id) {
+        throw new ForbiddenError('You can only comment on your own tickets');
+      }
+      if (req.user!.role === 'technician' && ticket.assignedTo !== req.user!.id) {
+        throw new ForbiddenError('Technicians can only comment on assigned tickets');
+      }
+
       const comment = await ticketService.addComment(
-        parseInt(req.params.id),
+        ticketId,
         req.user!.id,
         req.body.comment
       );

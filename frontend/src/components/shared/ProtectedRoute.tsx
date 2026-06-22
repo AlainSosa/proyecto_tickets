@@ -19,7 +19,7 @@ export function ProtectedRoute({ children, roles }: ProtectedRouteProps) {
       return;
     }
     if (roles && user && !roles.includes(user.role)) {
-      navigate('/dashboard', { replace: true });
+      navigate(user.role === 'user' ? '/tickets' : '/dashboard', { replace: true });
     }
   }, [isAuthenticated, isLoading, user, roles, navigate, location]);
 

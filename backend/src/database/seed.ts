@@ -1,5 +1,6 @@
 import { sequelize } from './connection';
 import bcrypt from 'bcryptjs';
+import { ensureDatabaseExists } from './ensureDatabase';
 import { setupAssociations } from './models/associations';
 import { User } from './models/User';
 
@@ -8,6 +9,7 @@ setupAssociations();
 async function seed(): Promise<void> {
   try {
     console.log('Running seeders...');
+    await ensureDatabaseExists();
 
     const passwordHash = await bcrypt.hash('admin123', 10);
 

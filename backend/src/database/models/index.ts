@@ -5,6 +5,5 @@ export { TicketHistory } from './TicketHistory';
 export { Asset } from './Asset';
 export { NetworkPoint } from './NetworkPoint';
 export { Extension } from './Extension';
-export { Consumable } from './Consumable';
 export { Maintenance } from './Maintenance';
 export { setupAssociations } from './associations';

@@ -15,12 +15,25 @@ import { User } from './User';
 import { TicketComment } from './TicketComment';
 import { TicketHistory } from './TicketHistory';
 
+export type TicketStatus =
+  | 'open'
+  | 'pending_assignment'
+  | 'assigned'
+  | 'in_progress'
+  | 'on_hold'
+  | 'resolved'
+  | 'closed'
+  | 'canceled'
+  | 'pending';
+
+export type TicketPriority = 'low' | 'medium' | 'high' | 'critical';
+
 export class Ticket extends Model<InferAttributes<Ticket>, InferCreationAttributes<Ticket>> {
   declare id: CreationOptional<number>;
   declare title: string;
   declare description: string;
-  declare status: 'pending' | 'in_progress' | 'resolved' | 'closed';
-  declare priority: 'low' | 'medium' | 'high' | 'critical';
+  declare status: TicketStatus;
+  declare priority: CreationOptional<TicketPriority | null>;
   declare requestedBy: ForeignKey<User['id']>;
   declare assignedTo: CreationOptional<ForeignKey<User['id']> | null>;
   declare resolutionDate: CreationOptional<Date | null>;
@@ -57,14 +70,13 @@ Ticket.init(
       allowNull: false,
     },
     status: {
-      type: DataTypes.ENUM('pending', 'in_progress', 'resolved', 'closed'),
+      type: DataTypes.ENUM('open', 'pending_assignment', 'assigned', 'in_progress', 'on_hold', 'resolved', 'closed', 'canceled', 'pending'),
       allowNull: false,
-      defaultValue: 'pending',
+      defaultValue: 'pending_assignment',
     },
     priority: {
       type: DataTypes.ENUM('low', 'medium', 'high', 'critical'),
-      allowNull: false,
-      defaultValue: 'medium',
+      allowNull: true,
     },
     requestedBy: {
       type: DataTypes.INTEGER,

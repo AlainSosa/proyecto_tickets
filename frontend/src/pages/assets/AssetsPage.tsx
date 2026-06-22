@@ -4,29 +4,15 @@ import { DataTable, Column } from '../../components/ui/DataTable';
 import { Pagination } from '../../components/ui/Pagination';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { Modal } from '../../components/ui/Modal';
+import { QuickReportButton, QuickReportColumn } from '../../components/ui/QuickReportButton';
 import { Asset } from '../../types';
 import api from '../../services/api';
 import { Plus, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useLanguage } from '../../context/LanguageContext';
 
-const typeLabels: Record<string, string> = {
-  computer: 'Computadora',
-  laptop: 'Laptop',
-  printer: 'Impresora',
-  ups: 'UPS',
-  switch: 'Switch',
-  router: 'Router',
-  ip_phone: 'Teléfono IP',
-  monitor: 'Monitor',
-  other: 'Otro',
-};
-
-const statusLabels: Record<string, string> = {
-  active: 'Activo',
-  inactive: 'Inactivo',
-  maintenance: 'En Mantenimiento',
-  disposed: 'Dado de Baja',
-};
+const typeLabelKeys = { computer: 'computer', laptop: 'laptop', printer: 'printer', ups: 'ups', switch: 'switch', router: 'router', ip_phone: 'ipPhone', monitor: 'monitor', other: 'other' } as const;
+const statusLabelKeys = { active: 'active', inactive: 'inactive', maintenance: 'maintenanceStatus', disposed: 'disposed' } as const;
 
 const statusBadge: Record<string, string> = {
   active: 'badge-green',
@@ -41,6 +27,7 @@ export function AssetsPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
+  const { t, locale } = useLanguage();
 
   const filters = useMemo(() => {
     const f: Record<string, string> = {};
@@ -56,19 +43,29 @@ export function AssetsPage() {
   });
 
   const columns: Column<Asset>[] = [
-    { header: 'Código', accessor: 'internalCode' },
-    { header: 'Tipo', accessor: (a) => typeLabels[a.type] },
-    { header: 'Marca', accessor: 'brand' },
-    { header: 'Modelo', accessor: 'model' },
-    { header: 'Serie', accessor: 'serialNumber' },
+    { header: t('code'), accessor: 'internalCode' },
+    { header: t('type'), accessor: (a) => t(typeLabelKeys[a.type]) },
+    { header: t('brand'), accessor: 'brand' },
+    { header: t('model'), accessor: 'model' },
+    { header: t('serial'), accessor: 'serialNumber' },
     {
-      header: 'Estado',
-      accessor: (a) => <span className={statusBadge[a.status]}>{statusLabels[a.status]}</span>,
+      header: t('status'),
+      accessor: (a) => <span className={statusBadge[a.status]}>{t(statusLabelKeys[a.status])}</span>,
     },
     {
-      header: 'Asignado a',
+      header: t('assignedTo'),
       accessor: (a) => a.assignedUser?.name || '-',
     },
+  ];
+
+  const reportColumns: QuickReportColumn<Asset>[] = [
+    { header: t('code'), value: (a) => a.internalCode },
+    { header: t('type'), value: (a) => t(typeLabelKeys[a.type]) },
+    { header: t('brand'), value: (a) => a.brand },
+    { header: t('model'), value: (a) => a.model },
+    { header: t('serial'), value: (a) => a.serialNumber },
+    { header: t('status'), value: (a) => t(statusLabelKeys[a.status]) },
+    { header: t('assignedTo'), value: (a) => a.assignedUser?.name || '-' },
   ];
 
   const handleEdit = (asset: Asset) => {
@@ -85,50 +82,56 @@ export function AssetsPage() {
     try {
       if (selectedAsset) {
         await api.patch(`/assets/${selectedAsset.id}`, formData);
-        toast.success('Activo actualizado');
+        toast.success(t('assetUpdated'));
       } else {
         await api.post('/assets', formData);
-        toast.success('Activo creado');
+        toast.success(t('assetCreated'));
       }
       setIsModalOpen(false);
       refetch();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Error saving asset');
+      toast.error(err.response?.data?.message || t('genericError'));
     }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Activos Informáticos</h1>
+        <h1 className="text-2xl font-bold">{t('computerAssets')}</h1>
         <button onClick={handleCreate} className="btn-primary gap-2">
           <Plus className="h-4 w-4" />
-          Nuevo Activo
+          {t('newAsset')}
         </button>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="w-64">
-          <SearchInput value={search} onChange={setSearch} placeholder="Buscar activos..." />
+          <SearchInput value={search} onChange={setSearch} placeholder={t('searchAssets')} />
         </div>
         <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="input w-44">
-          <option value="">Todos los tipos</option>
-          {Object.entries(typeLabels).map(([k, v]) => (
-            <option key={k} value={k}>{v}</option>
+          <option value="">{t('allTypes')}</option>
+          {Object.entries(typeLabelKeys).map(([k, key]) => (
+            <option key={k} value={k}>{t(key)}</option>
           ))}
         </select>
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input w-44">
-          <option value="">Todos los estados</option>
-          {Object.entries(statusLabels).map(([k, v]) => (
-            <option key={k} value={k}>{v}</option>
+          <option value="">{t('allStatuses')}</option>
+          {Object.entries(statusLabelKeys).map(([k, key]) => (
+            <option key={k} value={k}>{t(key)}</option>
           ))}
         </select>
         <button onClick={refetch} className="btn-secondary p-2">
           <RefreshCw className="h-4 w-4" />
         </button>
+        <QuickReportButton
+          title={t('computerAssets')}
+          rows={data}
+          columns={reportColumns}
+          disabled={isLoading}
+        />
       </div>
 
-      <DataTable columns={columns} data={data} isLoading={isLoading} onRowClick={handleEdit} emptyMessage="No se encontraron activos" />
+      <DataTable columns={columns} data={data} isLoading={isLoading} onRowClick={handleEdit} emptyMessage={t('noAssetsFound')} />
       <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
       <AssetFormModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} asset={selectedAsset} onSave={handleSave} />
@@ -160,6 +163,7 @@ function AssetFormModal({
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { t } = useLanguage();
 
   const resetForm = () => {
     setForm({
@@ -190,58 +194,58 @@ function AssetFormModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={asset ? 'Editar Activo' : 'Nuevo Activo'} size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} title={asset ? t('editAsset') : t('newAsset')} size="lg">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Código Interno</label>
+            <label className="block text-sm font-medium mb-1">{t('internalCode')}</label>
             <input type="text" value={form.internalCode} onChange={(e) => setForm({ ...form, internalCode: e.target.value })} className="input" required />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Tipo</label>
+            <label className="block text-sm font-medium mb-1">{t('type')}</label>
             <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })} className="input">
-              {Object.entries(typeLabels).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
+              {Object.entries(typeLabelKeys).map(([k, key]) => (
+                <option key={k} value={k}>{t(key)}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Marca</label>
+            <label className="block text-sm font-medium mb-1">{t('brand')}</label>
             <input type="text" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} className="input" required />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Modelo</label>
+            <label className="block text-sm font-medium mb-1">{t('model')}</label>
             <input type="text" value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} className="input" required />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">N° Serie</label>
+            <label className="block text-sm font-medium mb-1">{t('serial')}</label>
             <input type="text" value={form.serialNumber} onChange={(e) => setForm({ ...form, serialNumber: e.target.value })} className="input" required />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Estado</label>
+            <label className="block text-sm font-medium mb-1">{t('status')}</label>
             <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className="input">
-              {Object.entries(statusLabels).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
+              {Object.entries(statusLabelKeys).map(([k, key]) => (
+                <option key={k} value={k}>{t(key)}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Ubicación</label>
+            <label className="block text-sm font-medium mb-1">{t('location')}</label>
             <input type="text" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="input" />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Fecha Adquisición</label>
+            <label className="block text-sm font-medium mb-1">{t('acquisitionDate')}</label>
             <input type="date" value={form.acquisitionDate} onChange={(e) => setForm({ ...form, acquisitionDate: e.target.value })} className="input" />
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Observaciones</label>
+          <label className="block text-sm font-medium mb-1">{t('observations')}</label>
           <textarea value={form.observations} onChange={(e) => setForm({ ...form, observations: e.target.value })} className="input min-h-[80px]" />
         </div>
         <div className="flex justify-end gap-3 pt-4">
-          <button type="button" onClick={onClose} className="btn-secondary">Cancelar</button>
+          <button type="button" onClick={onClose} className="btn-secondary">{t('cancel')}</button>
           <button type="submit" disabled={isSubmitting} className="btn-primary">
-            {isSubmitting ? 'Guardando...' : asset ? 'Actualizar' : 'Crear'}
+            {isSubmitting ? t('saving') : asset ? t('update') : t('create')}
           </button>
         </div>
       </form>

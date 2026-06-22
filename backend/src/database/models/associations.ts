@@ -5,7 +5,6 @@ import { TicketHistory } from './TicketHistory';
 import { Asset } from './Asset';
 import { NetworkPoint } from './NetworkPoint';
 import { Extension } from './Extension';
-import { Consumable } from './Consumable';
 import { Maintenance } from './Maintenance';
 
 export function setupAssociations(): void {

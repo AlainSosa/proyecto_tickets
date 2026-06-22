@@ -1,27 +1,78 @@
 import { Request, Response, NextFunction } from 'express';
-import { TicketService } from '../services/ticket.service';
-import { AssetService } from '../services/asset.service';
-import { MaintenanceService } from '../services/maintenance.service';
+import { DashboardService } from '../services/dashboard.service';
 import { sendSuccess } from '../utils/response';
 
-const ticketService = new TicketService();
-const assetService = new AssetService();
-const maintenanceService = new MaintenanceService();
+const dashboardService = new DashboardService();
 
 export class DashboardController {
   async getStats(_req: Request, res: Response, next: NextFunction) {
     try {
-      const [ticketStats, assetStats, maintenanceStats] = await Promise.all([
-        ticketService.getDashboardStats(),
-        assetService.getDashboardStats(),
-        maintenanceService.getDashboardStats(),
-      ]);
+      const stats = await dashboardService.getLegacyStats();
+      sendSuccess(res, stats);
+    } catch (error) {
+      next(error);
+    }
+  }
 
-      sendSuccess(res, {
-        tickets: ticketStats,
-        assets: assetStats,
-        maintenance: maintenanceStats,
-      });
+  async getSummary(_req: Request, res: Response, next: NextFunction) {
+    try {
+      sendSuccess(res, await dashboardService.getSummary());
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getTicketsByStatus(_req: Request, res: Response, next: NextFunction) {
+    try {
+      sendSuccess(res, await dashboardService.getTicketsByStatus());
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getTicketsByMonth(_req: Request, res: Response, next: NextFunction) {
+    try {
+      sendSuccess(res, await dashboardService.getTicketsByMonth());
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getTicketsByCategory(_req: Request, res: Response, next: NextFunction) {
+    try {
+      sendSuccess(res, await dashboardService.getTicketsByCategory());
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getRecentTickets(_req: Request, res: Response, next: NextFunction) {
+    try {
+      sendSuccess(res, await dashboardService.getRecentTickets());
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getCriticalTickets(_req: Request, res: Response, next: NextFunction) {
+    try {
+      sendSuccess(res, await dashboardService.getCriticalTickets());
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getMaintenanceAssets(_req: Request, res: Response, next: NextFunction) {
+    try {
+      sendSuccess(res, await dashboardService.getMaintenanceAssets());
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getInactiveNetworkPoints(_req: Request, res: Response, next: NextFunction) {
+    try {
+      sendSuccess(res, await dashboardService.getInactiveNetworkPoints());
     } catch (error) {
       next(error);
     }

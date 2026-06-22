@@ -26,7 +26,7 @@ export function DataTable<T extends { id: number | string }>({
       <div className="card p-8">
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-10 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+            <div key={i} className="h-10 animate-pulse rounded bg-slate-100 dark:bg-slate-800" />
           ))}
         </div>
       </div>
@@ -36,7 +36,7 @@ export function DataTable<T extends { id: number | string }>({
   if (data.length === 0) {
     return (
       <div className="card p-12 text-center">
-        <p className="text-gray-500 dark:text-gray-400">{emptyMessage}</p>
+        <p className="text-slate-500 dark:text-slate-400">{emptyMessage}</p>
       </div>
     );
   }
@@ -46,9 +46,9 @@ export function DataTable<T extends { id: number | string }>({
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b bg-gray-50 dark:bg-gray-800/50">
+            <tr className="border-b bg-slate-50 dark:bg-slate-800/50">
               {columns.map((col, i) => (
-                <th key={i} className={`px-4 py-3 text-left font-medium text-gray-600 dark:text-gray-400 ${col.className || ''}`}>
+                <th key={i} className={`px-4 py-3 text-left font-semibold text-primary-900 dark:text-slate-300 ${col.className || ''}`}>
                   {col.header}
                 </th>
               ))}
@@ -59,7 +59,7 @@ export function DataTable<T extends { id: number | string }>({
               <tr
                 key={item.id}
                 onClick={() => onRowClick?.(item)}
-                className={`transition-colors ${onRowClick ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50' : ''}`}
+                className={`transition-colors ${onRowClick ? 'cursor-pointer hover:bg-brand-50/60 dark:hover:bg-slate-800/60' : ''}`}
               >
                 {columns.map((col, i) => (
                   <td key={col.header} className={`px-4 py-3 ${col.className || ''}`}>

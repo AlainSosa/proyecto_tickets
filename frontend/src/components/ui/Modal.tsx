@@ -11,6 +11,11 @@ interface ModalProps {
 
 export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (isOpen) {
@@ -21,7 +26,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
     }
 
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') onCloseRef.current();
     };
 
     document.addEventListener('keydown', handleEscape);
@@ -29,7 +34,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
       document.body.style.overflow = '';
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -46,11 +51,11 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
       <div
         ref={modalRef}
         tabIndex={-1}
-        className={`relative w-full ${sizes[size]} bg-white dark:bg-gray-900 rounded-xl shadow-xl max-h-[90vh] flex flex-col`}
+        className={`relative flex max-h-[90vh] w-full ${sizes[size]} flex-col rounded-xl border border-slate-200 bg-white shadow-card dark:border-slate-700 dark:bg-slate-900`}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b">
-          <h2 className="text-lg font-semibold">{title}</h2>
-          <button onClick={onClose} className="rounded-lg p-1 hover:bg-gray-100 dark:hover:bg-gray-800">
+        <div className="flex items-center justify-between border-b bg-slate-50 px-6 py-4 dark:bg-slate-800/50">
+          <h2 className="text-lg font-semibold text-primary-900 dark:text-slate-100">{title}</h2>
+          <button onClick={onClose} className="rounded-lg p-1 text-slate-500 hover:bg-brand-50 hover:text-brand-700 dark:hover:bg-slate-800">
             <X className="h-5 w-5" />
           </button>
         </div>
