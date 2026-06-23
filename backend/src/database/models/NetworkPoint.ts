@@ -8,6 +8,7 @@ import {
 } from 'sequelize';
 import { sequelize } from '../connection';
 import { Asset } from './Asset';
+import { DEFAULT_INSTITUTIONAL_AREA } from '../../constants/institutionalAreas';
 
 export class NetworkPoint extends Model<
   InferAttributes<NetworkPoint>,
@@ -41,6 +42,7 @@ NetworkPoint.init(
     location: {
       type: DataTypes.STRING(200),
       allowNull: false,
+      defaultValue: DEFAULT_INSTITUTIONAL_AREA,
     },
     patchPanel: {
       type: DataTypes.STRING(50),

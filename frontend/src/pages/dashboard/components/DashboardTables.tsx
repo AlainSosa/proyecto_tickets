@@ -1,15 +1,9 @@
 import { Asset, NetworkPoint, Ticket } from '../../../types';
 
 const statusLabels: Record<Ticket['status'], string> = {
-  open: 'Abierto',
-  pending_assignment: 'Pendiente de asignación',
-  assigned: 'Asignado',
   pending: 'Pendiente',
   in_progress: 'En proceso',
-  on_hold: 'En espera',
-  resolved: 'Resuelto',
-  closed: 'Cerrado',
-  canceled: 'Cancelado',
+  resolved: 'Finalizado',
 };
 
 const priorityLabels: Record<NonNullable<Ticket['priority']>, string> = {
@@ -20,15 +14,16 @@ const priorityLabels: Record<NonNullable<Ticket['priority']>, string> = {
 };
 
 const statusBadge: Record<Ticket['status'], string> = {
-  open: 'badge-blue',
-  pending_assignment: 'badge-blue',
-  assigned: 'badge-blue',
-  pending: 'badge-blue',
-  in_progress: 'badge-yellow',
-  on_hold: 'badge-yellow',
+  pending: 'badge-yellow',
+  in_progress: 'badge-blue',
   resolved: 'badge-green',
-  closed: 'badge-gray',
-  canceled: 'badge-gray',
+};
+
+const priorityBadge: Record<NonNullable<Ticket['priority']>, string> = {
+  low: 'badge-green',
+  medium: 'badge-yellow',
+  high: 'badge-orange',
+  critical: 'badge-red',
 };
 
 function EmptyRow({ colSpan, message }: { colSpan: number; message: string }) {
@@ -69,7 +64,9 @@ export function RecentTicketsTable({ tickets }: { tickets: Ticket[] }) {
             <tr key={ticket.id} className="hover:bg-brand-50/50 dark:hover:bg-slate-800/50">
               <td className="max-w-xs px-4 py-3 font-medium">{ticket.title}</td>
               <td className="px-4 py-3"><span className={statusBadge[ticket.status]}>{statusLabels[ticket.status]}</span></td>
-              <td className="px-4 py-3">{ticket.priority ? priorityLabels[ticket.priority] : 'Por definir'}</td>
+              <td className="px-4 py-3">
+                {ticket.priority ? <span className={priorityBadge[ticket.priority]}>{priorityLabels[ticket.priority]}</span> : <span className="badge-gray">Por definir</span>}
+              </td>
               <td className="px-4 py-3">{ticket.requester?.name || '-'}</td>
             </tr>
           ))}
@@ -95,7 +92,9 @@ export function CriticalTicketsTable({ tickets }: { tickets: Ticket[] }) {
           {tickets.length === 0 ? <EmptyRow colSpan={4} message="No hay tickets críticos pendientes." /> : tickets.map((ticket) => (
             <tr key={ticket.id} className="hover:bg-brand-50/50 dark:hover:bg-slate-800/50">
               <td className="max-w-xs px-4 py-3 font-medium">{ticket.title}</td>
-              <td className="px-4 py-3"><span className="badge-red">{ticket.priority ? priorityLabels[ticket.priority] : 'Por definir'}</span></td>
+              <td className="px-4 py-3">
+                {ticket.priority ? <span className={priorityBadge[ticket.priority]}>{priorityLabels[ticket.priority]}</span> : <span className="badge-gray">Por definir</span>}
+              </td>
               <td className="px-4 py-3"><span className={statusBadge[ticket.status]}>{statusLabels[ticket.status]}</span></td>
               <td className="px-4 py-3">{ticket.technician?.name || 'Sin asignar'}</td>
             </tr>

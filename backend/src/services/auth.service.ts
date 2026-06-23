@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import { config } from '../config';
 import { User } from '../database/models';
 import { UnauthorizedError, ConflictError } from '../utils/errors';
+import { InstitutionalArea } from '../constants/institutionalAreas';
 
 export class AuthService {
   async login(email: string, password: string): Promise<{ token: string; user: Partial<User> }> {
@@ -33,6 +34,7 @@ export class AuthService {
     email: string;
     password: string;
     role?: 'admin' | 'technician' | 'user';
+    area: InstitutionalArea;
   }): Promise<{ token: string; user: Partial<User> }> {
     const existingUser = await User.findOne({ where: { email: data.email } });
 
@@ -47,6 +49,7 @@ export class AuthService {
       email: data.email,
       password: passwordHash,
       role: data.role || 'user',
+      area: data.area,
     });
 
     const token = jwt.sign(

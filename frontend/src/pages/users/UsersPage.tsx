@@ -10,6 +10,8 @@ import api from '../../services/api';
 import { Plus, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../context/LanguageContext';
+import { AreaSelect } from '../../components/ui/AreaSelect';
+import { DEFAULT_INSTITUTIONAL_AREA, InstitutionalArea } from '../../constants/institutionalAreas';
 
 const roleLabelKeys = { admin: 'admin', technician: 'technician', user: 'user' } as const;
 const roleBadge: Record<string, string> = { admin: 'badge-red', technician: 'badge-blue', user: 'badge-green' };
@@ -17,20 +19,22 @@ const roleBadge: Record<string, string> = { admin: 'badge-red', technician: 'bad
 export function UsersPage() {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
+  const [areaFilter, setAreaFilter] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selected, setSelected] = useState<User | null>(null);
   const { t, locale } = useLanguage();
   const filters = useMemo(() => {
     const f: Record<string, string> = {};
-    if (search) f.search = search; if (roleFilter) f.role = roleFilter;
+    if (search) f.search = search; if (roleFilter) f.role = roleFilter; if (areaFilter) f.area = areaFilter;
     return f;
-  }, [search, roleFilter]);
+  }, [search, roleFilter, areaFilter]);
   const { data, page, totalPages, isLoading, setPage, refetch } = usePaginatedData<User>({ endpoint: '/users', filters });
 
   const columns: Column<User>[] = [
     { header: t('name'), accessor: 'name' },
     { header: 'Email', accessor: 'email' },
     { header: t('role'), accessor: (u) => <span className={roleBadge[u.role]}>{t(roleLabelKeys[u.role])}</span> },
+    { header: t('location'), accessor: 'area' },
     { header: t('enabled'), accessor: (u) => u.isActive ? <span className="badge-green">{t('yes')}</span> : <span className="badge-gray">{t('no')}</span> },
     { header: t('created'), accessor: (u) => new Date(u.createdAt).toLocaleDateString(locale) },
   ];
@@ -39,6 +43,7 @@ export function UsersPage() {
     { header: t('name'), value: (u) => u.name },
     { header: 'Email', value: (u) => u.email },
     { header: t('role'), value: (u) => t(roleLabelKeys[u.role]) },
+    { header: t('location'), value: (u) => u.area },
     { header: t('enabled'), value: (u) => (u.isActive ? t('yes') : t('no')) },
     { header: t('created'), value: (u) => new Date(u.createdAt).toLocaleDateString(locale) },
   ];
@@ -70,6 +75,7 @@ export function UsersPage() {
         <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)} className="input w-40">
           <option value="">{t('all')}</option><option value="admin">{t('admin')}</option><option value="technician">{t('technician')}</option><option value="user">{t('user')}</option>
         </select>
+        <AreaSelect value={areaFilter} onChange={setAreaFilter} includeEmpty className="input w-48" />
         <button onClick={refetch} className="btn-secondary p-2"><RefreshCw className="h-4 w-4" /></button>
         <QuickReportButton
           title={t('users')}
@@ -86,7 +92,7 @@ export function UsersPage() {
 }
 
 function UserFormModal({ isOpen, onClose, user, onSave, onDelete }: { isOpen: boolean; onClose: () => void; user: User | null; onSave: (data: any) => void; onDelete?: () => void }) {
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'user' });
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'user', area: DEFAULT_INSTITUTIONAL_AREA as InstitutionalArea });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { t } = useLanguage();
   useEffect(() => {
@@ -96,16 +102,17 @@ function UserFormModal({ isOpen, onClose, user, onSave, onDelete }: { isOpen: bo
         email: user.email,
         password: '',
         role: user.role,
-      } : { name: '', email: '', password: '', role: 'user' });
+        area: user.area || DEFAULT_INSTITUTIONAL_AREA,
+      } : { name: '', email: '', password: '', role: 'user', area: DEFAULT_INSTITUTIONAL_AREA });
     }
   }, [isOpen, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setIsSubmitting(true);
-    const data: any = { name: form.name, email: form.email, role: form.role };
+    const data: any = { name: form.name, email: form.email, role: form.role, area: form.area };
     if (form.password) data.password = form.password;
     await onSave(data); setIsSubmitting(false);
-    setForm({ name: '', email: '', password: '', role: 'user' });
+    setForm({ name: '', email: '', password: '', role: 'user', area: DEFAULT_INSTITUTIONAL_AREA });
   };
 
   return (
@@ -115,6 +122,10 @@ function UserFormModal({ isOpen, onClose, user, onSave, onDelete }: { isOpen: bo
         <div><label className="block text-sm font-medium mb-1">Email</label><input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="input" required /></div>
         <div><label className="block text-sm font-medium mb-1">{t('password')} {user && t('keepPassword')}</label><input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} className="input" minLength={user ? 0 : 6} required={!user} /></div>
         <div><label className="block text-sm font-medium mb-1">{t('role')}</label><select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} className="input"><option value="user">{t('user')}</option><option value="technician">{t('technician')}</option><option value="admin">{t('admin')}</option></select></div>
+        <div>
+          <label className="mb-1 block text-sm font-medium">{t('location')}</label>
+          <AreaSelect value={form.area} onChange={(area) => setForm({ ...form, area: area as InstitutionalArea })} required />
+        </div>
         <div className="flex justify-between pt-4">
           <div>{user && onDelete && <button type="button" onClick={onDelete} className="btn-danger">{t('delete')}</button>}</div>
           <div className="flex gap-3">

@@ -5,11 +5,13 @@ import { Eye, Globe2, Lock, Mail, Send, UserPlus } from "lucide-react";
 import { LanguageToggle } from "../../components/ui/LanguageToggle";
 import { useLanguage } from "../../context/LanguageContext";
 import { Modal } from "../../components/ui/Modal";
+import { AreaSelect } from "../../components/ui/AreaSelect";
+import { DEFAULT_INSTITUTIONAL_AREA, InstitutionalArea } from "../../constants/institutionalAreas";
 
 interface TechnicianRequestForm {
   name: string;
   email: string;
-  area: string;
+  area: InstitutionalArea;
   phone: string;
   message: string;
 }
@@ -27,7 +29,7 @@ export function LoginPage() {
   const [requestForm, setRequestForm] = useState<TechnicianRequestForm>({
     name: "",
     email: "",
-    area: "",
+    area: DEFAULT_INSTITUTIONAL_AREA,
     phone: "",
     message: "",
   });
@@ -105,7 +107,7 @@ export function LoginPage() {
     );
     setIsSendingRequest(false);
     setRequestSent(true);
-    setRequestForm({ name: "", email: "", area: "", phone: "", message: "" });
+    setRequestForm({ name: "", email: "", area: DEFAULT_INSTITUTIONAL_AREA, phone: "", message: "" });
   };
 
   return (
@@ -319,12 +321,9 @@ export function LoginPage() {
                 <label className="mb-1 block text-sm font-medium text-slate-700">
                   {t("workArea")}
                 </label>
-                <input
-                  type="text"
+                <AreaSelect
                   value={requestForm.area}
-                  onChange={(e) =>
-                    setRequestForm({ ...requestForm, area: e.target.value })
-                  }
+                  onChange={(area) => setRequestForm({ ...requestForm, area: area as InstitutionalArea })}
                   className="input border-slate-300"
                   required
                 />

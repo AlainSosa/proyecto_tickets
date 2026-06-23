@@ -2,6 +2,7 @@ export { User } from './User';
 export { Ticket } from './Ticket';
 export { TicketComment } from './TicketComment';
 export { TicketHistory } from './TicketHistory';
+export { AuditLog } from './AuditLog';
 export { Asset } from './Asset';
 export { NetworkPoint } from './NetworkPoint';
 export { Extension } from './Extension';

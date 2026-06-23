@@ -44,6 +44,9 @@
   .badge-yellow {
     @apply badge border border-yellow-300 bg-yellow-50 text-yellow-700 dark:border-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300;
   }
+  .badge-orange {
+    @apply badge border border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800 dark:bg-orange-900/30 dark:text-orange-300;
+  }
   .badge-red {
     @apply badge border border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-900/30 dark:text-red-300;
   }

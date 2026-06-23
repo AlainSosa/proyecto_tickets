@@ -1,6 +1,7 @@
 import { Op } from 'sequelize';
 import { Asset, User } from '../database/models';
 import { NotFoundError } from '../utils/errors';
+import { InstitutionalArea } from '../constants/institutionalAreas';
 
 interface CreateAssetData {
   internalCode: string;
@@ -9,7 +10,7 @@ interface CreateAssetData {
   model: string;
   serialNumber: string;
   status?: AssetStatus;
-  location?: string | null;
+  location?: InstitutionalArea | null;
   assignedTo?: number | null;
   acquisitionDate?: string | null;
   observations?: string | null;
@@ -23,6 +24,7 @@ interface PaginationParams {
   limit: number;
   type?: string;
   status?: string;
+  location?: InstitutionalArea;
   search?: string;
 }
 
@@ -32,12 +34,13 @@ export class AssetService {
   }
 
   async findAll(params: PaginationParams) {
-    const { page, limit, type, status, search } = params;
+    const { page, limit, type, status, location, search } = params;
     const offset = (page - 1) * limit;
 
     const where: any = {};
     if (type) where.type = type;
     if (status) where.status = status;
+    if (location) where.location = location;
     if (search) {
       where[Op.or] = [
         { internalCode: { [Op.iLike]: `%${search}%` } },

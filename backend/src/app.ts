@@ -6,6 +6,8 @@ import { setupAssociations } from './database/models/associations';
 import { errorHandler } from './middlewares/errorHandler';
 import routes from './routes';
 import dashboardHandler from './handlers/dashboard.handler';
+import { normalizeInstitutionalAreas } from './database/normalizeInstitutionalAreas';
+import { normalizeTicketStatuses } from './database/normalizeTicketStatuses';
 
 const app = express();
 
@@ -24,6 +26,8 @@ async function start(): Promise<void> {
   try {
     await testConnection();
     await sequelize.sync({ alter: true });
+    await normalizeInstitutionalAreas();
+    await normalizeTicketStatuses();
     console.log('Database synchronized.');
 
     app.listen(config.port, () => {

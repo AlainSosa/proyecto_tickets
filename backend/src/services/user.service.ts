@@ -1,19 +1,22 @@
-import { Op } from 'sequelize';
+import { literal, Op } from 'sequelize';
 import bcrypt from 'bcryptjs';
 import { User } from '../database/models';
 import { NotFoundError, ConflictError } from '../utils/errors';
+import { InstitutionalArea } from '../constants/institutionalAreas';
 
 interface CreateUserData {
   name: string;
   email: string;
   password: string;
   role: 'admin' | 'technician' | 'user';
+  area: InstitutionalArea;
 }
 
 interface PaginationParams {
   page: number;
   limit: number;
   role?: string;
+  area?: InstitutionalArea;
   search?: string;
 }
 
@@ -30,11 +33,12 @@ export class UserService {
   }
 
   async findAll(params: PaginationParams) {
-    const { page, limit, role, search } = params;
+    const { page, limit, role, area, search } = params;
     const offset = (page - 1) * limit;
 
     const where: any = {};
     if (role) where.role = role;
+    if (area) where.area = area;
     if (search) {
       where[Op.or] = [
         { name: { [Op.iLike]: `%${search}%` } },
@@ -47,7 +51,10 @@ export class UserService {
       offset,
       limit,
       attributes: { exclude: ['password'] },
-      order: [['name', 'ASC']],
+      order: [
+        [literal(`CASE "User"."role" WHEN 'admin' THEN 1 WHEN 'technician' THEN 2 WHEN 'user' THEN 3 ELSE 4 END`), 'ASC'],
+        ['name', 'ASC'],
+      ] as any,
     });
 
     return { users: rows, total: count };

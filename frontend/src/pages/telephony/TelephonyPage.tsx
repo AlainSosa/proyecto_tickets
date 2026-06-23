@@ -10,6 +10,8 @@ import api from '../../services/api';
 import { Plus, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../context/LanguageContext';
+import { AreaSelect } from '../../components/ui/AreaSelect';
+import { DEFAULT_INSTITUTIONAL_AREA, InstitutionalArea } from '../../constants/institutionalAreas';
 
 const statusLabelKeys = { active: 'active', inactive: 'inactive' } as const;
 const statusBadge: Record<string, string> = { active: 'badge-green', inactive: 'badge-gray' };
@@ -17,14 +19,15 @@ const statusBadge: Record<string, string> = { active: 'badge-green', inactive: '
 export function TelephonyPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selected, setSelected] = useState<Extension | null>(null);
   const { t } = useLanguage();
   const filters = useMemo(() => {
     const f: Record<string, string> = {};
-    if (search) f.search = search; if (statusFilter) f.status = statusFilter;
+    if (search) f.search = search; if (statusFilter) f.status = statusFilter; if (locationFilter) f.location = locationFilter;
     return f;
-  }, [search, statusFilter]);
+  }, [search, statusFilter, locationFilter]);
   const { data, page, totalPages, isLoading, setPage, refetch } = usePaginatedData<Extension>({ endpoint: '/extensions', filters });
 
   const columns: Column<Extension>[] = [
@@ -64,6 +67,7 @@ export function TelephonyPage() {
         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="input w-40">
           <option value="">{t('all')}</option><option value="active">{t('active')}</option><option value="inactive">{t('inactive')}</option>
         </select>
+        <AreaSelect value={locationFilter} onChange={setLocationFilter} includeEmpty className="input w-48" />
         <button onClick={refetch} className="btn-secondary p-2"><RefreshCw className="h-4 w-4" /></button>
         <QuickReportButton
           title={t('telephony')}
@@ -80,7 +84,7 @@ export function TelephonyPage() {
 }
 
 function TelephonyFormModal({ isOpen, onClose, item, onSave }: { isOpen: boolean; onClose: () => void; item: Extension | null; onSave: (data: any) => void }) {
-  const [form, setForm] = useState({ extensionNumber: '', ipAddress: '', location: '', status: 'active' });
+  const [form, setForm] = useState({ extensionNumber: '', ipAddress: '', location: DEFAULT_INSTITUTIONAL_AREA as InstitutionalArea, status: 'active' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { t } = useLanguage();
   useEffect(() => {
@@ -88,26 +92,26 @@ function TelephonyFormModal({ isOpen, onClose, item, onSave }: { isOpen: boolean
       setForm(item ? {
         extensionNumber: item.extensionNumber,
         ipAddress: item.ipAddress || '',
-        location: item.location || '',
+        location: item.location || DEFAULT_INSTITUTIONAL_AREA,
         status: item.status,
-      } : { extensionNumber: '', ipAddress: '', location: '', status: 'active' });
+      } : { extensionNumber: '', ipAddress: '', location: DEFAULT_INSTITUTIONAL_AREA, status: 'active' });
     }
   }, [isOpen, item]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setIsSubmitting(true);
     await onSave(form); setIsSubmitting(false);
-    setForm({ extensionNumber: '', ipAddress: '', location: '', status: 'active' });
+    setForm({ extensionNumber: '', ipAddress: '', location: DEFAULT_INSTITUTIONAL_AREA, status: 'active' });
   };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={item ? t('editExtension') : t('newExtension')}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          <div><label className="block text-sm font-medium mb-1">{t('extensionNumber')}</label><input type="text" value={form.extensionNumber} onChange={e => setForm({ ...form, extensionNumber: e.target.value })} className="input" required /></div>
+          <div><label className="block text-sm font-medium mb-1">{t('extensionNumber')}</label><input type="text" value={form.extensionNumber} onChange={e => setForm({ ...form, extensionNumber: e.target.value })} className="input" data-no-auto-capitalize="true" required /></div>
           <div><label className="block text-sm font-medium mb-1">{t('status')}</label><select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="input"><option value="active">{t('active')}</option><option value="inactive">{t('inactive')}</option></select></div>
-          <div><label className="block text-sm font-medium mb-1">{t('ipAddress')}</label><input type="text" value={form.ipAddress} onChange={e => setForm({ ...form, ipAddress: e.target.value })} className="input" /></div>
-          <div><label className="block text-sm font-medium mb-1">{t('location')}</label><input type="text" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} className="input" /></div>
+          <div><label className="block text-sm font-medium mb-1">{t('ipAddress')}</label><input type="text" value={form.ipAddress} onChange={e => setForm({ ...form, ipAddress: e.target.value })} className="input" data-no-auto-capitalize="true" /></div>
+          <div><label className="block text-sm font-medium mb-1">{t('location')}</label><AreaSelect value={form.location} onChange={location => setForm({ ...form, location: location as InstitutionalArea })} required /></div>
         </div>
         <div className="flex justify-end gap-3 pt-4">
           <button type="button" onClick={onClose} className="btn-secondary">{t('cancel')}</button>

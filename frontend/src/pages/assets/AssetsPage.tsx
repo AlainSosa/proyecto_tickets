@@ -10,6 +10,8 @@ import api from '../../services/api';
 import { Plus, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../context/LanguageContext';
+import { AreaSelect } from '../../components/ui/AreaSelect';
+import { DEFAULT_INSTITUTIONAL_AREA, InstitutionalArea } from '../../constants/institutionalAreas';
 
 const typeLabelKeys = { computer: 'computer', laptop: 'laptop', printer: 'printer', ups: 'ups', switch: 'switch', router: 'router', ip_phone: 'ipPhone', monitor: 'monitor', other: 'other' } as const;
 const statusLabelKeys = { active: 'active', inactive: 'inactive', maintenance: 'maintenanceStatus', disposed: 'disposed' } as const;
@@ -25,6 +27,7 @@ export function AssetsPage() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null);
   const { t, locale } = useLanguage();
@@ -34,8 +37,9 @@ export function AssetsPage() {
     if (search) f.search = search;
     if (typeFilter) f.type = typeFilter;
     if (statusFilter) f.status = statusFilter;
+    if (locationFilter) f.location = locationFilter;
     return f;
-  }, [search, typeFilter, statusFilter]);
+  }, [search, typeFilter, statusFilter, locationFilter]);
 
   const { data, page, totalPages, isLoading, setPage, refetch } = usePaginatedData<Asset>({
     endpoint: '/assets',
@@ -120,6 +124,7 @@ export function AssetsPage() {
             <option key={k} value={k}>{t(key)}</option>
           ))}
         </select>
+        <AreaSelect value={locationFilter} onChange={setLocationFilter} includeEmpty className="input w-48" />
         <button onClick={refetch} className="btn-secondary p-2">
           <RefreshCw className="h-4 w-4" />
         </button>
@@ -157,7 +162,7 @@ function AssetFormModal({
     model: '',
     serialNumber: '',
     status: 'active',
-    location: '',
+    location: DEFAULT_INSTITUTIONAL_AREA as InstitutionalArea,
     acquisitionDate: '',
     observations: '',
   });
@@ -173,7 +178,7 @@ function AssetFormModal({
       model: asset?.model || '',
       serialNumber: asset?.serialNumber || '',
       status: asset?.status || 'active',
-      location: asset?.location || '',
+        location: asset?.location || DEFAULT_INSTITUTIONAL_AREA,
       acquisitionDate: asset?.acquisitionDate || '',
       observations: asset?.observations || '',
     });
@@ -190,7 +195,7 @@ function AssetFormModal({
     setIsSubmitting(true);
     await onSave(form);
     setIsSubmitting(false);
-    setForm({ internalCode: '', type: 'computer', brand: '', model: '', serialNumber: '', status: 'active', location: '', acquisitionDate: '', observations: '' });
+    setForm({ internalCode: '', type: 'computer', brand: '', model: '', serialNumber: '', status: 'active', location: DEFAULT_INSTITUTIONAL_AREA, acquisitionDate: '', observations: '' });
   };
 
   return (
@@ -199,7 +204,7 @@ function AssetFormModal({
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">{t('internalCode')}</label>
-            <input type="text" value={form.internalCode} onChange={(e) => setForm({ ...form, internalCode: e.target.value })} className="input" required />
+            <input type="text" value={form.internalCode} onChange={(e) => setForm({ ...form, internalCode: e.target.value })} className="input" data-no-auto-capitalize="true" required />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">{t('type')}</label>
@@ -219,7 +224,7 @@ function AssetFormModal({
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">{t('serial')}</label>
-            <input type="text" value={form.serialNumber} onChange={(e) => setForm({ ...form, serialNumber: e.target.value })} className="input" required />
+            <input type="text" value={form.serialNumber} onChange={(e) => setForm({ ...form, serialNumber: e.target.value })} className="input" data-no-auto-capitalize="true" required />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">{t('status')}</label>
@@ -231,7 +236,7 @@ function AssetFormModal({
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">{t('location')}</label>
-            <input type="text" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className="input" />
+            <AreaSelect value={form.location} onChange={(location) => setForm({ ...form, location: location as InstitutionalArea })} required />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">{t('acquisitionDate')}</label>

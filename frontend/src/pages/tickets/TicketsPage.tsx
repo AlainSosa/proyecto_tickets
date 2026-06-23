@@ -5,37 +5,18 @@ import { DataTable, Column } from '../../components/ui/DataTable';
 import { Pagination } from '../../components/ui/Pagination';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { Modal } from '../../components/ui/Modal';
+import { AreaSelect } from '../../components/ui/AreaSelect';
 import { QuickReportButton, QuickReportColumn } from '../../components/ui/QuickReportButton';
 import { useAuth } from '../../context/AuthContext';
-import { Ticket, TicketPriority, TicketStatus, User } from '../../types';
+import { Ticket, TicketPriority, User } from '../../types';
 import api from '../../services/api';
-import { Plus, RefreshCw, Send, Clock } from 'lucide-react';
+import { Plus, RefreshCw, Send, Clock, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../context/LanguageContext';
+import { DEFAULT_INSTITUTIONAL_AREA, InstitutionalArea } from '../../constants/institutionalAreas';
+import { getTicketStatusBadge, getTicketStatusLabelKey, TICKET_STATUSES } from '../../constants/ticketStatuses';
 
-const statusBadge: Record<string, string> = {
-  open: 'badge-blue',
-  pending_assignment: 'badge-blue',
-  assigned: 'badge-blue',
-  pending: 'badge-blue',
-  in_progress: 'badge-yellow',
-  on_hold: 'badge-yellow',
-  resolved: 'badge-green',
-  closed: 'badge-gray',
-  canceled: 'badge-gray',
-};
-
-const statusLabelKeys = {
-  open: 'open',
-  pending_assignment: 'pendingAssignment',
-  assigned: 'assignedStatus',
-  pending: 'pending',
-  in_progress: 'inProgress',
-  on_hold: 'onHold',
-  resolved: 'resolved',
-  closed: 'closed',
-  canceled: 'canceled',
-} as const;
+const ticketCategories = ['Red', 'Impresoras', 'Computadoras', 'Telefonía', 'Correo', 'Software', 'Otros'];
 
 const priorityLabelKeys = {
   low: 'low',
@@ -45,20 +26,25 @@ const priorityLabelKeys = {
 } as const;
 
 function UserTicketForm({ onCreated }: { onCreated: () => void }) {
+  const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const location = user?.area || DEFAULT_INSTITUTIONAL_AREA;
+  const [attachments, setAttachments] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { t } = useLanguage();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !description.trim()) return;
+    if (!title.trim() || !description.trim() || !location.trim()) return;
     setIsSubmitting(true);
     try {
-      await api.post('/tickets', { title, description });
+      const attachmentList = attachments.split('\n').map((item) => item.trim()).filter(Boolean);
+      await api.post('/tickets', { title, description, category: 'Otros', location, attachments: attachmentList });
       toast.success(t('requestSent'));
       setTitle('');
       setDescription('');
+      setAttachments('');
       onCreated();
     } catch {
       toast.error(t('requestError'));
@@ -87,6 +73,13 @@ function UserTicketForm({ onCreated }: { onCreated: () => void }) {
           />
         </div>
         <div>
+          <div>
+            <label className="block text-sm font-medium mb-1">{t('location')}</label>
+            <input value={location} className="input cursor-not-allowed bg-slate-50 dark:bg-slate-800" readOnly />
+            <p className="mt-1 text-xs text-slate-500">Área asignada al usuario.</p>
+          </div>
+        </div>
+        <div>
           <label className="block text-sm font-medium mb-1">{t('description')}</label>
           <textarea
             value={description}
@@ -95,6 +88,15 @@ function UserTicketForm({ onCreated }: { onCreated: () => void }) {
             placeholder={t('detailedProblemPlaceholder')}
             required
             minLength={10}
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Evidencias o adjuntos</label>
+          <textarea
+            value={attachments}
+            onChange={(e) => setAttachments(e.target.value)}
+            className="input min-h-[80px]"
+            placeholder="Pega un enlace por línea, por ejemplo capturas o documentos compartidos"
           />
         </div>
         <div className="flex items-center justify-end">
@@ -120,11 +122,13 @@ function UserTicketList() {
   const columns: Column<Ticket>[] = [
     { header: '#', accessor: 'id', className: 'w-12' },
     { header: t('title'), accessor: 'title' },
+    { header: 'Categoría', accessor: 'category' },
+    { header: t('location'), accessor: 'location' },
     {
       header: t('status'),
       accessor: (ticket) => (
-        <span className={statusBadge[ticket.status]}>
-          {t(statusLabelKeys[ticket.status])}
+        <span className={getTicketStatusBadge(ticket.status)}>
+          {t(getTicketStatusLabelKey(ticket.status))}
         </span>
       ),
     },
@@ -144,12 +148,21 @@ function UserTicketList() {
       header: t('created'),
       accessor: (ticket) => new Date(ticket.createdAt).toLocaleDateString(locale),
     },
+    {
+      header: '',
+      accessor: (ticket) => ticket.status === 'resolved'
+        ? <CheckCircle2 className="h-5 w-5 text-green-600" aria-label={t('resolved')} />
+        : null,
+      className: 'w-12',
+    },
   ];
 
   const reportColumns: QuickReportColumn<Ticket>[] = [
     { header: '#', value: (ticket) => ticket.id },
     { header: t('title'), value: (ticket) => ticket.title },
-    { header: t('status'), value: (ticket) => t(statusLabelKeys[ticket.status]) },
+    { header: 'Categoría', value: (ticket) => ticket.category },
+    { header: t('location'), value: (ticket) => ticket.location },
+    { header: t('status'), value: (ticket) => t(getTicketStatusLabelKey(ticket.status)) },
     { header: t('priority'), value: (ticket) => ticket.priority ? t(priorityLabelKeys[ticket.priority]) : t('undefinedPriority') },
     { header: t('technician'), value: (ticket) => ticket.technician?.name || t('withoutAssignment') },
     { header: t('created'), value: (ticket) => new Date(ticket.createdAt).toLocaleDateString(locale) },
@@ -176,13 +189,15 @@ function TechnicianTicketList() {
   const { t, locale } = useLanguage();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
 
   const filters = useMemo(() => {
     const f: Record<string, string> = { assignedTo: String(user!.id) };
     if (search) f.search = search;
     if (statusFilter) f.status = statusFilter;
+    if (locationFilter) f.location = locationFilter;
     return f;
-  }, [search, statusFilter, user]);
+  }, [search, statusFilter, locationFilter, user]);
 
   const { data, page, totalPages, isLoading, setPage, refetch } = usePaginatedData<Ticket>({
     endpoint: '/tickets',
@@ -192,11 +207,12 @@ function TechnicianTicketList() {
   const columns: Column<Ticket>[] = [
     { header: '#', accessor: 'id', className: 'w-12' },
     { header: t('title'), accessor: 'title' },
+    { header: 'Categoría', accessor: 'category' },
     {
       header: t('status'),
       accessor: (ticket) => (
-        <span className={statusBadge[ticket.status]}>
-          {t(statusLabelKeys[ticket.status])}
+        <span className={getTicketStatusBadge(ticket.status)}>
+          {t(getTicketStatusLabelKey(ticket.status))}
         </span>
       ),
     },
@@ -216,12 +232,20 @@ function TechnicianTicketList() {
       header: t('created'),
       accessor: (ticket) => new Date(ticket.createdAt).toLocaleDateString(locale),
     },
+    {
+      header: '',
+      accessor: (ticket) => ticket.status === 'resolved'
+        ? <CheckCircle2 className="h-5 w-5 text-green-600" aria-label={t('resolved')} />
+        : null,
+      className: 'w-12',
+    },
   ];
 
   const reportColumns: QuickReportColumn<Ticket>[] = [
     { header: '#', value: (ticket) => ticket.id },
     { header: t('title'), value: (ticket) => ticket.title },
-    { header: t('status'), value: (ticket) => t(statusLabelKeys[ticket.status]) },
+    { header: 'Categoría', value: (ticket) => ticket.category },
+    { header: t('status'), value: (ticket) => t(getTicketStatusLabelKey(ticket.status)) },
     { header: t('priority'), value: (ticket) => ticket.priority ? t(priorityLabelKeys[ticket.priority]) : t('undefinedPriority') },
     { header: t('requester'), value: (ticket) => ticket.requester?.name || '-' },
     { header: t('created'), value: (ticket) => new Date(ticket.createdAt).toLocaleDateString(locale) },
@@ -242,15 +266,11 @@ function TechnicianTicketList() {
         </div>
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input w-40">
           <option value="">{t('allStatuses')}</option>
-          <option value="pending">{t('pending')}</option>
-          <option value="pending_assignment">{t('pendingAssignment')}</option>
-          <option value="assigned">{t('assignedStatus')}</option>
-          <option value="in_progress">{t('inProgress')}</option>
-          <option value="on_hold">{t('onHold')}</option>
-          <option value="resolved">{t('resolved')}</option>
-          <option value="closed">{t('closed')}</option>
-          <option value="canceled">{t('canceled')}</option>
+          {TICKET_STATUSES.map((ticketStatus) => (
+            <option key={ticketStatus} value={ticketStatus}>{t(getTicketStatusLabelKey(ticketStatus))}</option>
+          ))}
         </select>
+        <AreaSelect value={locationFilter} onChange={setLocationFilter} includeEmpty className="input w-48" />
         <QuickReportButton title={t('assignedTickets')} rows={data} columns={reportColumns} disabled={isLoading} />
       </div>
 
@@ -266,6 +286,7 @@ function AdminTicketList() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [technicians, setTechnicians] = useState<User[]>([]);
@@ -279,8 +300,9 @@ function AdminTicketList() {
     if (search) f.search = search;
     if (statusFilter) f.status = statusFilter;
     if (priorityFilter) f.priority = priorityFilter;
+    if (locationFilter) f.location = locationFilter;
     return f;
-  }, [search, statusFilter, priorityFilter]);
+  }, [search, statusFilter, priorityFilter, locationFilter]);
 
   const { data, page, totalPages, isLoading, setPage, refetch } = usePaginatedData<Ticket>({
     endpoint: '/tickets',
@@ -290,9 +312,10 @@ function AdminTicketList() {
   const columns: Column<Ticket>[] = [
     { header: 'ID', accessor: 'id', className: 'w-16' },
     { header: t('title'), accessor: 'title' },
+    { header: 'Categoría', accessor: 'category' },
     {
       header: t('status'),
-      accessor: (ticket) => (<span className={statusBadge[ticket.status]}>{t(statusLabelKeys[ticket.status])}</span>),
+      accessor: (ticket) => (<span className={getTicketStatusBadge(ticket.status)}>{t(getTicketStatusLabelKey(ticket.status))}</span>),
     },
     {
       header: t('priority'),
@@ -305,12 +328,20 @@ function AdminTicketList() {
     { header: t('requester'), accessor: (ticket) => ticket.requester?.name || '-' },
     { header: t('technician'), accessor: (ticket) => ticket.technician?.name || t('withoutAssignment') },
     { header: t('created'), accessor: (ticket) => new Date(ticket.createdAt).toLocaleDateString(locale) },
+    {
+      header: '',
+      accessor: (ticket) => ticket.status === 'resolved'
+        ? <CheckCircle2 className="h-5 w-5 text-green-600" aria-label={t('resolved')} />
+        : null,
+      className: 'w-12',
+    },
   ];
 
   const reportColumns: QuickReportColumn<Ticket>[] = [
     { header: 'ID', value: (ticket) => ticket.id },
     { header: t('title'), value: (ticket) => ticket.title },
-    { header: t('status'), value: (ticket) => t(statusLabelKeys[ticket.status]) },
+    { header: 'Categoría', value: (ticket) => ticket.category },
+    { header: t('status'), value: (ticket) => t(getTicketStatusLabelKey(ticket.status)) },
     { header: t('priority'), value: (ticket) => ticket.priority ? t(priorityLabelKeys[ticket.priority]) : t('undefinedPriority') },
     { header: t('requester'), value: (ticket) => ticket.requester?.name || '-' },
     { header: t('technician'), value: (ticket) => ticket.technician?.name || t('withoutAssignment') },
@@ -330,14 +361,9 @@ function AdminTicketList() {
         <div className="w-64"><SearchInput value={search} onChange={setSearch} placeholder={t('searchTickets')} /></div>
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input w-40">
           <option value="">{t('allStatuses')}</option>
-          <option value="pending">{t('pending')}</option>
-          <option value="pending_assignment">{t('pendingAssignment')}</option>
-          <option value="assigned">{t('assignedStatus')}</option>
-          <option value="in_progress">{t('inProgress')}</option>
-          <option value="on_hold">{t('onHold')}</option>
-          <option value="resolved">{t('resolved')}</option>
-          <option value="closed">{t('closed')}</option>
-          <option value="canceled">{t('canceled')}</option>
+          {TICKET_STATUSES.map((ticketStatus) => (
+            <option key={ticketStatus} value={ticketStatus}>{t(getTicketStatusLabelKey(ticketStatus))}</option>
+          ))}
         </select>
         <select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)} className="input w-40">
           <option value="">{t('allPriorities')}</option>
@@ -346,6 +372,7 @@ function AdminTicketList() {
           <option value="high">{t('high')}</option>
           <option value="critical">{t('critical')}</option>
         </select>
+        <AreaSelect value={locationFilter} onChange={setLocationFilter} includeEmpty className="input w-48" />
         <button onClick={refetch} className="btn-secondary p-2"><RefreshCw className="h-4 w-4" /></button>
         <QuickReportButton title="Tickets" rows={data} columns={reportColumns} disabled={isLoading} />
       </div>
@@ -375,8 +402,10 @@ interface TicketFormProps {
 function TicketFormModal({ ticket, technicians, onClose, onSaved }: TicketFormProps) {
   const [title, setTitle] = useState(ticket?.title || '');
   const [description, setDescription] = useState(ticket?.description || '');
+  const [category, setCategory] = useState(ticket?.category || ticketCategories[0]);
+  const [location, setLocation] = useState<InstitutionalArea>(ticket?.location || DEFAULT_INSTITUTIONAL_AREA);
+  const [attachments, setAttachments] = useState((ticket?.attachments || []).join('\n'));
   const [priority, setPriority] = useState<TicketPriority | ''>(ticket?.priority || '');
-  const [status, setStatus] = useState<TicketStatus>(ticket?.status || 'pending_assignment');
   const [assignedTo, setAssignedTo] = useState(ticket?.assignedTo ? String(ticket.assignedTo) : '');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { t } = useLanguage();
@@ -385,8 +414,15 @@ function TicketFormModal({ ticket, technicians, onClose, onSaved }: TicketFormPr
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const payload: Record<string, unknown> = { title, description, priority: priority || null, assignedTo: assignedTo ? parseInt(assignedTo) : null };
-      if (ticket) Object.assign(payload, { status });
+      const payload: Record<string, unknown> = {
+        title,
+        description,
+        category,
+        location,
+        attachments: attachments.split('\n').map((item) => item.trim()).filter(Boolean),
+        priority: priority || null,
+        assignedTo: assignedTo ? parseInt(assignedTo) : null,
+      };
       if (ticket) {
         await api.patch(`/tickets/${ticket.id}`, payload);
         toast.success(t('ticketUpdated'));
@@ -412,6 +448,22 @@ function TicketFormModal({ ticket, technicians, onClose, onSaved }: TicketFormPr
         <label className="block text-sm font-medium mb-1">{t('description')}</label>
         <textarea value={description} onChange={(e) => setDescription(e.target.value)} className="input min-h-[100px]" required />
       </div>
+      <div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Categoría</label>
+          <select value={category} onChange={(e) => setCategory(e.target.value)} className="input">
+            {ticketCategories.map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">{t('location')}</label>
+          <AreaSelect value={location} onChange={(value) => setLocation(value as InstitutionalArea)} required />
+        </div>
+      </div>
+      <div>
+        <label className="block text-sm font-medium mb-1">Evidencias o adjuntos</label>
+        <textarea value={attachments} onChange={(e) => setAttachments(e.target.value)} className="input min-h-[80px]" placeholder="Un enlace por línea" />
+      </div>
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium mb-1">{t('priority')}</label>
@@ -423,20 +475,6 @@ function TicketFormModal({ ticket, technicians, onClose, onSaved }: TicketFormPr
             <option value="critical">{t('critical')}</option>
           </select>
         </div>
-        {ticket && (
-          <div>
-            <label className="block text-sm font-medium mb-1">{t('status')}</label>
-            <select value={status} onChange={(e) => setStatus(e.target.value as TicketStatus)} className="input">
-              <option value="pending_assignment">{t('pendingAssignment')}</option>
-              <option value="assigned">{t('assignedStatus')}</option>
-              <option value="in_progress">{t('inProgress')}</option>
-              <option value="on_hold">{t('onHold')}</option>
-              <option value="resolved">{t('resolved')}</option>
-              <option value="closed">{t('closed')}</option>
-              <option value="canceled">{t('canceled')}</option>
-            </select>
-          </div>
-        )}
       </div>
       <div>
         <label className="block text-sm font-medium mb-1">{t('assignedTechnician')}</label>

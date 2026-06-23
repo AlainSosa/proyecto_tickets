@@ -10,6 +10,8 @@ import api from '../../services/api';
 import { Plus, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../context/LanguageContext';
+import { AreaSelect } from '../../components/ui/AreaSelect';
+import { DEFAULT_INSTITUTIONAL_AREA, InstitutionalArea } from '../../constants/institutionalAreas';
 
 const statusLabelKeys = { active: 'active', inactive: 'inactive', faulty: 'faulty' } as const;
 const statusBadge: Record<string, string> = { active: 'badge-green', inactive: 'badge-gray', faulty: 'badge-red' };
@@ -17,6 +19,7 @@ const statusBadge: Record<string, string> = { active: 'badge-green', inactive: '
 export function NetworkPage() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [locationFilter, setLocationFilter] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selected, setSelected] = useState<NetworkPoint | null>(null);
   const { t } = useLanguage();
@@ -25,8 +28,9 @@ export function NetworkPage() {
     const f: Record<string, string> = {};
     if (search) f.search = search;
     if (statusFilter) f.status = statusFilter;
+    if (locationFilter) f.location = locationFilter;
     return f;
-  }, [search, statusFilter]);
+  }, [search, statusFilter, locationFilter]);
 
   const { data, page, totalPages, isLoading, setPage, refetch } = usePaginatedData<NetworkPoint>({ endpoint: '/network-points', filters });
 
@@ -70,6 +74,7 @@ export function NetworkPage() {
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input w-40">
           <option value="">{t('all')}</option><option value="active">{t('active')}</option><option value="inactive">{t('inactive')}</option><option value="faulty">{t('faulty')}</option>
         </select>
+        <AreaSelect value={locationFilter} onChange={setLocationFilter} includeEmpty className="input w-48" />
         <button onClick={refetch} className="btn-secondary p-2"><RefreshCw className="h-4 w-4" /></button>
         <QuickReportButton
           title={t('networkInfrastructure')}
@@ -86,7 +91,7 @@ export function NetworkPage() {
 }
 
 function NetworkFormModal({ isOpen, onClose, item, onSave }: { isOpen: boolean; onClose: () => void; item: NetworkPoint | null; onSave: (data: any) => void }) {
-  const [form, setForm] = useState({ label: '', location: '', patchPanel: '', switchPort: '', status: 'active', observations: '' });
+  const [form, setForm] = useState({ label: '', location: DEFAULT_INSTITUTIONAL_AREA as InstitutionalArea, patchPanel: '', switchPort: '', status: 'active', observations: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { t } = useLanguage();
 
@@ -99,14 +104,14 @@ function NetworkFormModal({ isOpen, onClose, item, onSave }: { isOpen: boolean; 
         switchPort: item.switchPort || '',
         status: item.status,
         observations: item.observations || '',
-      } : { label: '', location: '', patchPanel: '', switchPort: '', status: 'active', observations: '' });
+      } : { label: '', location: DEFAULT_INSTITUTIONAL_AREA, patchPanel: '', switchPort: '', status: 'active', observations: '' });
     }
   }, [isOpen, item]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setIsSubmitting(true);
     await onSave(form); setIsSubmitting(false);
-    setForm({ label: '', location: '', patchPanel: '', switchPort: '', status: 'active', observations: '' });
+    setForm({ label: '', location: DEFAULT_INSTITUTIONAL_AREA, patchPanel: '', switchPort: '', status: 'active', observations: '' });
   };
 
   return (
@@ -115,9 +120,9 @@ function NetworkFormModal({ isOpen, onClose, item, onSave }: { isOpen: boolean; 
         <div className="grid grid-cols-2 gap-4">
           <div><label className="block text-sm font-medium mb-1">{t('label')}</label><input type="text" value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} className="input" required /></div>
           <div><label className="block text-sm font-medium mb-1">{t('status')}</label><select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className="input"><option value="active">{t('active')}</option><option value="inactive">{t('inactive')}</option><option value="faulty">{t('faulty')}</option></select></div>
-          <div className="col-span-2"><label className="block text-sm font-medium mb-1">{t('location')}</label><input type="text" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} className="input" required /></div>
-          <div><label className="block text-sm font-medium mb-1">{t('patchPanel')}</label><input type="text" value={form.patchPanel} onChange={e => setForm({ ...form, patchPanel: e.target.value })} className="input" /></div>
-          <div><label className="block text-sm font-medium mb-1">{t('switchPort')}</label><input type="text" value={form.switchPort} onChange={e => setForm({ ...form, switchPort: e.target.value })} className="input" /></div>
+          <div className="col-span-2"><label className="block text-sm font-medium mb-1">{t('location')}</label><AreaSelect value={form.location} onChange={location => setForm({ ...form, location: location as InstitutionalArea })} required /></div>
+          <div><label className="block text-sm font-medium mb-1">{t('patchPanel')}</label><input type="text" value={form.patchPanel} onChange={e => setForm({ ...form, patchPanel: e.target.value })} className="input" data-no-auto-capitalize="true" /></div>
+          <div><label className="block text-sm font-medium mb-1">{t('switchPort')}</label><input type="text" value={form.switchPort} onChange={e => setForm({ ...form, switchPort: e.target.value })} className="input" data-no-auto-capitalize="true" /></div>
         </div>
         <div><label className="block text-sm font-medium mb-1">{t('observations')}</label><textarea value={form.observations} onChange={e => setForm({ ...form, observations: e.target.value })} className="input min-h-[80px]" /></div>
         <div className="flex justify-end gap-3 pt-4">

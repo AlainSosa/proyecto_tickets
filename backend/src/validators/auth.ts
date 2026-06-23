@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { Request, Response, NextFunction } from 'express';
 import { ValidationError } from '../utils/errors';
+import { INSTITUTIONAL_AREAS } from '../constants/institutionalAreas';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email format'),
@@ -12,6 +13,7 @@ const registerSchema = z.object({
   email: z.string().email('Invalid email format'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   role: z.enum(['admin', 'technician', 'user']).optional(),
+  area: z.enum(INSTITUTIONAL_AREAS),
 });
 
 export function validateLogin(req: Request, _res: Response, next: NextFunction): void {

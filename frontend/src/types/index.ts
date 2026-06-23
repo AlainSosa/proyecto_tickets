@@ -1,8 +1,11 @@
+import { InstitutionalArea } from '../constants/institutionalAreas';
+
 export interface User {
   id: number;
   name: string;
   email: string;
   role: 'admin' | 'technician' | 'user';
+  area: InstitutionalArea;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -12,6 +15,9 @@ export interface Ticket {
   id: number;
   title: string;
   description: string;
+  category: string;
+  location: InstitutionalArea;
+  attachments: string[] | null;
   status: TicketStatus;
   priority: TicketPriority | null;
   requestedBy: number;
@@ -53,16 +59,20 @@ export interface TicketHistory {
   author?: User;
 }
 
-export type TicketStatus =
-  | 'open'
-  | 'pending_assignment'
-  | 'assigned'
-  | 'in_progress'
-  | 'on_hold'
-  | 'resolved'
-  | 'closed'
-  | 'canceled'
-  | 'pending';
+export interface AuditLog {
+  id: number;
+  userId: number;
+  action: string;
+  entity: string;
+  entityId: number | null;
+  ipAddress: string | null;
+  oldData: Record<string, unknown> | null;
+  newData: Record<string, unknown> | null;
+  createdAt: string;
+  user?: User;
+}
+
+export type TicketStatus = 'pending' | 'in_progress' | 'resolved';
 
 export type TicketPriority = 'low' | 'medium' | 'high' | 'critical';
 
@@ -87,7 +97,7 @@ export interface Asset {
   model: string;
   serialNumber: string;
   status: AssetStatus;
-  location: string | null;
+  location: InstitutionalArea | null;
   assignedTo: number | null;
   acquisitionDate: string | null;
   observations: string | null;
@@ -102,7 +112,7 @@ export type AssetStatus = 'active' | 'inactive' | 'maintenance' | 'disposed';
 export interface NetworkPoint {
   id: number;
   label: string;
-  location: string;
+  location: InstitutionalArea;
   patchPanel: string | null;
   switchId: number | null;
   switchPort: string | null;
@@ -119,7 +129,7 @@ export interface Extension {
   ipAddress: string | null;
   phoneId: number | null;
   assignedTo: number | null;
-  location: string | null;
+  location: InstitutionalArea | null;
   status: 'active' | 'inactive';
   createdAt: string;
   updatedAt: string;
@@ -202,10 +212,17 @@ export interface DashboardStats {
 }
 
 export interface DashboardSummary {
+  totalTickets: number;
   openTickets: number;
+  pendingTickets: number;
+  assignedTickets: number;
   inProgressTickets: number;
+  onHoldTickets: number;
+  resolvedTickets: number;
+  closedTickets: number;
   criticalTickets: number;
   resolvedThisMonth: number;
+  byPriority: Record<TicketPriority, number>;
   totalAssets: number;
   assetsInMaintenance: number;
   totalNetworkPoints: number;
@@ -226,4 +243,17 @@ export interface DashboardMonthDatum {
 export interface DashboardCategoryDatum {
   category: string;
   value: number;
+}
+
+export interface DashboardAreaDatum {
+  area: InstitutionalArea;
+  value: number;
+}
+
+export interface DashboardTechnicianMetric {
+  technicianId: number;
+  technicianName: string;
+  assignedTickets: number;
+  resolvedTickets: number;
+  averageResolutionHours: number;
 }

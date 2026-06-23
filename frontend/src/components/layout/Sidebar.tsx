@@ -11,6 +11,7 @@ import {
   CircleCheckBig,
   ChevronLeft,
   Globe2,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -30,6 +31,7 @@ const links = [
   { to: '/maintenance', labelKey: 'maintenance', icon: Wrench, roles: ['admin', 'technician'] },
   { to: '/reports', labelKey: 'reports', icon: FileText, roles: ['admin', 'technician'] },
   { to: '/users', labelKey: 'users', icon: Users, roles: ['admin'] },
+  { to: '/audit', labelKey: 'audit', icon: ShieldCheck, roles: ['admin'] },
 ];
 
 export function Sidebar({ isOpen, onClose }: SidebarProps) {

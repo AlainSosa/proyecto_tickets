@@ -12,6 +12,7 @@ import { sequelize } from '../connection';
 import { Ticket } from './Ticket';
 import { Asset } from './Asset';
 import { Maintenance } from './Maintenance';
+import { DEFAULT_INSTITUTIONAL_AREA, InstitutionalArea } from '../../constants/institutionalAreas';
 
 export class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
   declare id: CreationOptional<number>;
@@ -19,6 +20,7 @@ export class User extends Model<InferAttributes<User>, InferCreationAttributes<U
   declare email: string;
   declare password: string;
   declare role: 'admin' | 'technician' | 'user';
+  declare area: InstitutionalArea;
   declare isActive: CreationOptional<boolean>;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
@@ -57,6 +59,11 @@ User.init(
       type: DataTypes.ENUM('admin', 'technician', 'user'),
       allowNull: false,
       defaultValue: 'user',
+    },
+    area: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      defaultValue: DEFAULT_INSTITUTIONAL_AREA,
     },
     isActive: {
       type: DataTypes.BOOLEAN,

@@ -1,6 +1,9 @@
 import { z } from 'zod';
 import { Request, Response, NextFunction } from 'express';
 import { ValidationError } from '../utils/errors';
+import { INSTITUTIONAL_AREAS } from '../constants/institutionalAreas';
+
+const institutionalAreaSchema = z.enum(INSTITUTIONAL_AREAS);
 
 const createAssetSchema = z.object({
   internalCode: z.string().min(1).max(50),
@@ -9,7 +12,7 @@ const createAssetSchema = z.object({
   model: z.string().min(1).max(100),
   serialNumber: z.string().min(1).max(100),
   status: z.enum(['active', 'inactive', 'maintenance', 'disposed']).optional(),
-  location: z.string().max(200).nullable().optional(),
+  location: institutionalAreaSchema.nullable().optional(),
   assignedTo: z.number().int().positive().nullable().optional(),
   acquisitionDate: z.string().nullable().optional(),
   observations: z.string().nullable().optional(),

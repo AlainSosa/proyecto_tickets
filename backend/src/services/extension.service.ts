@@ -1,13 +1,14 @@
 import { Op } from 'sequelize';
 import { Extension, User, Asset } from '../database/models';
 import { NotFoundError } from '../utils/errors';
+import { InstitutionalArea } from '../constants/institutionalAreas';
 
 interface CreateData {
   extensionNumber: string;
   ipAddress?: string | null;
   phoneId?: number | null;
   assignedTo?: number | null;
-  location?: string | null;
+  location?: InstitutionalArea | null;
   status?: 'active' | 'inactive';
 }
 
@@ -15,6 +16,7 @@ interface PaginationParams {
   page: number;
   limit: number;
   status?: string;
+  location?: InstitutionalArea;
   search?: string;
 }
 
@@ -24,11 +26,12 @@ export class ExtensionService {
   }
 
   async findAll(params: PaginationParams) {
-    const { page, limit, status, search } = params;
+    const { page, limit, status, location, search } = params;
     const offset = (page - 1) * limit;
 
     const where: any = {};
     if (status) where.status = status;
+    if (location) where.location = location;
     if (search) {
       where[Op.or] = [
         { extensionNumber: { [Op.iLike]: `%${search}%` } },

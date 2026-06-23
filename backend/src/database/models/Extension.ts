@@ -9,6 +9,7 @@ import {
 import { sequelize } from '../connection';
 import { User } from './User';
 import { Asset } from './Asset';
+import { DEFAULT_INSTITUTIONAL_AREA } from '../../constants/institutionalAreas';
 
 export class Extension extends Model<
   InferAttributes<Extension>,
@@ -55,6 +56,7 @@ Extension.init(
     location: {
       type: DataTypes.STRING(200),
       allowNull: true,
+      defaultValue: DEFAULT_INSTITUTIONAL_AREA,
     },
     status: {
       type: DataTypes.ENUM('active', 'inactive'),

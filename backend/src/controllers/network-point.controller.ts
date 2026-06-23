@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { NetworkPointService } from '../services/network-point.service';
 import { sendSuccess, sendPaginated } from '../utils/response';
+import { isInstitutionalArea } from '../constants/institutionalAreas';
 
 const service = new NetworkPointService();
 
@@ -19,9 +20,11 @@ export class NetworkPointController {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
       const status = req.query.status as string;
+      const requestedLocation = req.query.location as string;
+      const location = isInstitutionalArea(requestedLocation) ? requestedLocation : undefined;
       const search = req.query.search as string;
 
-      const { points, total } = await service.findAll({ page, limit, status, search });
+      const { points, total } = await service.findAll({ page, limit, status, location, search });
       sendPaginated(res, points, total, page, limit);
     } catch (error) {
       next(error);

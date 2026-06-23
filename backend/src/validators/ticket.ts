@@ -1,18 +1,27 @@
 import { z } from 'zod';
 import { Request, Response, NextFunction } from 'express';
 import { ValidationError } from '../utils/errors';
+import { INSTITUTIONAL_AREAS } from '../constants/institutionalAreas';
+
+const institutionalAreaSchema = z.enum(INSTITUTIONAL_AREAS);
 
 const createTicketSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters').max(200),
   description: z.string().min(10, 'Description must be at least 10 characters'),
+  category: z.string().min(2, 'Category is required').max(100),
+  location: institutionalAreaSchema,
+  attachments: z.array(z.string().url()).max(5).optional(),
 });
 
-const ticketStatusSchema = z.enum(['open', 'pending_assignment', 'assigned', 'in_progress', 'on_hold', 'resolved', 'closed', 'canceled', 'pending']);
+const ticketStatusSchema = z.enum(['pending', 'in_progress', 'resolved']);
 const ticketPrioritySchema = z.enum(['low', 'medium', 'high', 'critical']);
 
 const updateTicketSchema = z.object({
   title: z.string().min(5).max(200).optional(),
   description: z.string().min(10).optional(),
+  category: z.string().min(2).max(100).optional(),
+  location: institutionalAreaSchema.optional(),
+  attachments: z.array(z.string().url()).max(5).optional(),
   status: ticketStatusSchema.optional(),
   priority: ticketPrioritySchema.nullable().optional(),
   assignedTo: z.number().int().positive().nullable().optional(),

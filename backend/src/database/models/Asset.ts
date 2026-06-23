@@ -10,6 +10,7 @@ import {
 } from 'sequelize';
 import { sequelize } from '../connection';
 import { User } from './User';
+import { DEFAULT_INSTITUTIONAL_AREA } from '../../constants/institutionalAreas';
 
 export class Asset extends Model<InferAttributes<Asset>, InferCreationAttributes<Asset>> {
   declare id: CreationOptional<number>;
@@ -86,6 +87,7 @@ Asset.init(
     location: {
       type: DataTypes.STRING(200),
       allowNull: true,
+      defaultValue: DEFAULT_INSTITUTIONAL_AREA,
     },
     assignedTo: {
       type: DataTypes.INTEGER,

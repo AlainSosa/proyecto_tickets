@@ -20,6 +20,7 @@ async function seed(): Promise<void> {
         email: 'admin@sistema.com',
         password: passwordHash,
         role: 'admin',
+        area: 'Administración',
         isActive: true,
       },
     });
@@ -31,6 +32,7 @@ async function seed(): Promise<void> {
         email: 'tecnico@sistema.com',
         password: await bcrypt.hash('tecnico123', 10),
         role: 'technician',
+        area: 'CCOM',
         isActive: true,
       },
     });
@@ -42,6 +44,7 @@ async function seed(): Promise<void> {
         email: 'usuario@sistema.com',
         password: await bcrypt.hash('usuario123', 10),
         role: 'user',
+        area: 'Consulado',
         isActive: true,
       },
     });

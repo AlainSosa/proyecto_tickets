@@ -9,30 +9,7 @@ import { SearchInput } from '../../components/ui/SearchInput';
 import { QuickReportButton, QuickReportColumn } from '../../components/ui/QuickReportButton';
 import { Ticket } from '../../types';
 import api from '../../services/api';
-
-const statusBadge: Record<Ticket['status'], string> = {
-  open: 'badge-blue',
-  pending_assignment: 'badge-blue',
-  assigned: 'badge-blue',
-  pending: 'badge-blue',
-  in_progress: 'badge-yellow',
-  on_hold: 'badge-yellow',
-  resolved: 'badge-green',
-  closed: 'badge-gray',
-  canceled: 'badge-gray',
-};
-
-const statusLabelKeys = {
-  open: 'open',
-  pending_assignment: 'pendingAssignment',
-  assigned: 'assignedStatus',
-  pending: 'pending',
-  in_progress: 'inProgress',
-  on_hold: 'onHold',
-  resolved: 'resolved',
-  closed: 'closed',
-  canceled: 'canceled',
-} as const;
+import { getTicketStatusBadge, getTicketStatusLabelKey, TICKET_STATUSES } from '../../constants/ticketStatuses';
 
 const priorityLabelKeys = {
   low: 'low',
@@ -74,14 +51,14 @@ export function MyTicketStatusPage() {
       acc[ticket.status] += 1;
       return acc;
     },
-    { open: 0, pending_assignment: 0, assigned: 0, pending: 0, in_progress: 0, on_hold: 0, resolved: 0, closed: 0, canceled: 0 } as Record<Ticket['status'], number>,
+    { pending: 0, in_progress: 0, resolved: 0 } as Record<Ticket['status'], number>,
   );
 
   const cards = [
     { label: t('total'), value: summaryTickets.length || total, icon: Search, className: 'text-primary-700 bg-primary-50 dark:bg-primary-900/20 dark:text-primary-300' },
-    { label: t('pendingAssignment'), value: statusCounts.pending_assignment + statusCounts.pending, icon: Clock, className: 'text-blue-700 bg-blue-50 dark:bg-blue-900/20 dark:text-blue-300' },
+    { label: t('pending'), value: statusCounts.pending, icon: Clock, className: 'text-amber-700 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-300' },
     { label: t('inProgress'), value: statusCounts.in_progress, icon: TimerReset, className: 'text-amber-700 bg-amber-50 dark:bg-amber-900/20 dark:text-amber-300' },
-    { label: t('resolved'), value: statusCounts.resolved, icon: CheckCircle2, className: 'text-brand-700 bg-brand-50 dark:bg-brand-900/20 dark:text-brand-300' },
+    { label: t('finalized'), value: statusCounts.resolved, icon: CheckCircle2, className: 'text-brand-700 bg-brand-50 dark:bg-brand-900/20 dark:text-brand-300' },
   ];
 
   const columns: Column<Ticket>[] = [
@@ -89,7 +66,7 @@ export function MyTicketStatusPage() {
     { header: t('title'), accessor: 'title' },
     {
       header: t('status'),
-      accessor: (ticket) => <span className={statusBadge[ticket.status]}>{t(statusLabelKeys[ticket.status])}</span>,
+      accessor: (ticket) => <span className={getTicketStatusBadge(ticket.status)}>{t(getTicketStatusLabelKey(ticket.status))}</span>,
     },
     {
       header: t('priority'),
@@ -107,7 +84,7 @@ export function MyTicketStatusPage() {
   const reportColumns: QuickReportColumn<Ticket>[] = [
     { header: 'ID', value: (ticket) => ticket.id },
     { header: t('title'), value: (ticket) => ticket.title },
-    { header: t('status'), value: (ticket) => t(statusLabelKeys[ticket.status]) },
+    { header: t('status'), value: (ticket) => t(getTicketStatusLabelKey(ticket.status)) },
     { header: t('priority'), value: (ticket) => ticket.priority ? t(priorityLabelKeys[ticket.priority]) : t('undefinedPriority') },
     { header: t('technician'), value: (ticket) => ticket.technician?.name || t('withoutAssignment') },
     { header: t('created'), value: (ticket) => new Date(ticket.createdAt).toLocaleDateString(locale) },
@@ -145,14 +122,9 @@ export function MyTicketStatusPage() {
         </div>
         <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input w-44">
           <option value="">{t('allStatuses')}</option>
-          <option value="pending">{t('pending')}</option>
-          <option value="pending_assignment">{t('pendingAssignment')}</option>
-          <option value="assigned">{t('assignedStatus')}</option>
-          <option value="in_progress">{t('inProgress')}</option>
-          <option value="on_hold">{t('onHold')}</option>
-          <option value="resolved">{t('resolved')}</option>
-          <option value="closed">{t('closed')}</option>
-          <option value="canceled">{t('canceled')}</option>
+          {TICKET_STATUSES.map((ticketStatus) => (
+            <option key={ticketStatus} value={ticketStatus}>{t(getTicketStatusLabelKey(ticketStatus))}</option>
+          ))}
         </select>
         <QuickReportButton title={t('myTicketStatus')} rows={data} columns={reportColumns} disabled={isLoading} />
       </div>

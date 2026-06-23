@@ -17,6 +17,8 @@ import { TelephonyPage } from './pages/telephony/TelephonyPage';
 import { MaintenancePage } from './pages/maintenance/MaintenancePage';
 import { ReportsPage } from './pages/reports/ReportsPage';
 import { UsersPage } from './pages/users/UsersPage';
+import { AuditPage } from './pages/audit/AuditPage';
+import { AutoCapitalizeTextInputs } from './components/shared/AutoCapitalizeTextInputs';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -38,18 +40,19 @@ export default function App() {
       <LanguageProvider>
         <ThemeProvider>
           <AuthProvider>
-          <ScrollToTop />
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 3000,
-              style: {
-                fontSize: '14px',
-                borderRadius: '12px',
-              },
-            }}
-          />
-          <Routes>
+          <AutoCapitalizeTextInputs>
+            <ScrollToTop />
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                duration: 3000,
+                style: {
+                  fontSize: '14px',
+                  borderRadius: '12px',
+                },
+              }}
+            />
+            <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/" element={<RootRedirect />} />
 
@@ -112,10 +115,19 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/audit"
+                element={
+                  <ProtectedRoute roles={['admin']}>
+                    <AuditPage />
+                  </ProtectedRoute>
+                }
+              />
             </Route>
 
             <Route path="*" element={<RootRedirect />} />
-          </Routes>
+            </Routes>
+          </AutoCapitalizeTextInputs>
           </AuthProvider>
         </ThemeProvider>
       </LanguageProvider>

@@ -23,6 +23,7 @@ export function SearchInput({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={inputPlaceholder}
+        data-no-auto-capitalize="true"
         className="input pl-10 pr-8"
       />
       {value && (

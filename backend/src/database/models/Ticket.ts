@@ -14,17 +14,9 @@ import { sequelize } from '../connection';
 import { User } from './User';
 import { TicketComment } from './TicketComment';
 import { TicketHistory } from './TicketHistory';
+import { DEFAULT_INSTITUTIONAL_AREA } from '../../constants/institutionalAreas';
 
-export type TicketStatus =
-  | 'open'
-  | 'pending_assignment'
-  | 'assigned'
-  | 'in_progress'
-  | 'on_hold'
-  | 'resolved'
-  | 'closed'
-  | 'canceled'
-  | 'pending';
+export type TicketStatus = 'pending' | 'in_progress' | 'resolved';
 
 export type TicketPriority = 'low' | 'medium' | 'high' | 'critical';
 
@@ -32,6 +24,9 @@ export class Ticket extends Model<InferAttributes<Ticket>, InferCreationAttribut
   declare id: CreationOptional<number>;
   declare title: string;
   declare description: string;
+  declare category: string;
+  declare location: string;
+  declare attachments: CreationOptional<string[] | null>;
   declare status: TicketStatus;
   declare priority: CreationOptional<TicketPriority | null>;
   declare requestedBy: ForeignKey<User['id']>;
@@ -69,10 +64,25 @@ Ticket.init(
       type: DataTypes.TEXT,
       allowNull: false,
     },
+    category: {
+      type: DataTypes.STRING(100),
+      allowNull: false,
+      defaultValue: 'Otros',
+    },
+    location: {
+      type: DataTypes.STRING(150),
+      allowNull: false,
+      defaultValue: DEFAULT_INSTITUTIONAL_AREA,
+    },
+    attachments: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      defaultValue: [],
+    },
     status: {
       type: DataTypes.ENUM('open', 'pending_assignment', 'assigned', 'in_progress', 'on_hold', 'resolved', 'closed', 'canceled', 'pending'),
       allowNull: false,
-      defaultValue: 'pending_assignment',
+      defaultValue: 'pending',
     },
     priority: {
       type: DataTypes.ENUM('low', 'medium', 'high', 'critical'),

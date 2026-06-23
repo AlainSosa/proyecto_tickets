@@ -2,6 +2,7 @@ import { User } from './User';
 import { Ticket } from './Ticket';
 import { TicketComment } from './TicketComment';
 import { TicketHistory } from './TicketHistory';
+import { AuditLog } from './AuditLog';
 import { Asset } from './Asset';
 import { NetworkPoint } from './NetworkPoint';
 import { Extension } from './Extension';
@@ -20,6 +21,9 @@ export function setupAssociations(): void {
   Ticket.hasMany(TicketHistory, { foreignKey: 'ticketId', as: 'histories' });
   TicketHistory.belongsTo(Ticket, { foreignKey: 'ticketId' });
   TicketHistory.belongsTo(User, { foreignKey: 'userId', as: 'author' });
+
+  User.hasMany(AuditLog, { foreignKey: 'userId', as: 'auditLogs' });
+  AuditLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
   User.hasMany(Asset, { foreignKey: 'assignedTo', as: 'assets' });
   Asset.belongsTo(User, { foreignKey: 'assignedTo', as: 'assignedUser' });

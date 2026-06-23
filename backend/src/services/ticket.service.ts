@@ -1,18 +1,26 @@
-import { Op } from 'sequelize';
-import { Ticket, TicketComment, TicketHistory, User } from '../database/models';
+import { literal, Op } from 'sequelize';
+import { AuditLog, Ticket, TicketComment, TicketHistory, User } from '../database/models';
 import { TicketPriority, TicketStatus } from '../database/models/Ticket';
 import { ForbiddenError, NotFoundError } from '../utils/errors';
 import { AuthPayload } from '../middlewares/auth';
+import { InstitutionalArea } from '../constants/institutionalAreas';
 
 interface CreateTicketData {
   title: string;
   description: string;
+  category: string;
+  location: InstitutionalArea;
+  attachments?: string[];
   requestedBy: number;
+  ipAddress?: string | null;
 }
 
 interface UpdateTicketData {
   title?: string;
   description?: string;
+  category?: string;
+  location?: InstitutionalArea;
+  attachments?: string[];
   status?: TicketStatus;
   priority?: TicketPriority | null;
   assignedTo?: number | null;
@@ -26,17 +34,20 @@ interface PaginationParams {
   limit: number;
   status?: string;
   priority?: string;
+  location?: InstitutionalArea;
   search?: string;
   requestedBy?: number;
   assignedTo?: number;
+  unassigned?: boolean;
 }
 
 interface TicketActionContext {
   userId: number;
   role: AuthPayload['role'];
+  ipAddress?: string | null;
 }
 
-const technicianStatuses: TicketStatus[] = ['assigned', 'in_progress', 'on_hold', 'resolved'];
+const technicianStatuses: TicketStatus[] = ['pending', 'in_progress', 'resolved'];
 
 function historyValue(value: unknown) {
   if (value === null || value === undefined || value === '') return 'sin definir';
@@ -48,8 +59,11 @@ export class TicketService {
     const ticket = await Ticket.create({
       title: data.title,
       description: data.description,
+      category: data.category,
+      location: data.location,
+      attachments: data.attachments || [],
       priority: null,
-      status: 'pending_assignment',
+      status: 'pending',
       requestedBy: data.requestedBy,
     });
 
@@ -59,22 +73,40 @@ export class TicketService {
       actorRole: 'user',
       action: 'ticket_created',
       field: 'status',
-      newValue: 'pending_assignment',
-      newStatus: 'pending_assignment',
+      newValue: 'pending',
+      newStatus: 'pending',
       comment: 'Ticket creado por el usuario final',
+    });
+
+    await this.createAudit({
+      userId: data.requestedBy,
+      action: 'ticket_created',
+      entity: 'ticket',
+      entityId: ticket.id,
+      ipAddress: data.ipAddress,
+      newData: {
+        title: ticket.title,
+        description: ticket.description,
+        category: ticket.category,
+        location: ticket.location,
+        attachments: ticket.attachments,
+        status: ticket.status,
+        requestedBy: ticket.requestedBy,
+      },
     });
 
     return this.findById(ticket.id);
   }
 
   async findAll(params: PaginationParams) {
-    const { page, limit, status, priority, search } = params;
+    const { page, limit, status, priority, location, search } = params;
     const offset = (page - 1) * limit;
 
     const where: any = {};
 
     if (status) where.status = status;
     if (priority) where.priority = priority;
+    if (location) where.location = location;
     if (search) {
       where[Op.or] = [
         { title: { [Op.iLike]: `%${search}%` } },
@@ -83,16 +115,23 @@ export class TicketService {
     }
     if (params.requestedBy) where.requestedBy = params.requestedBy;
     if (params.assignedTo) where.assignedTo = params.assignedTo;
+    if (params.unassigned) where.assignedTo = null;
+
+    const order = [
+      [literal(`CASE WHEN "Ticket"."status" = 'resolved' THEN 1 ELSE 0 END`), 'ASC'],
+      [literal(`CASE "Ticket"."priority" WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 ELSE 5 END`), 'ASC'],
+      ['createdAt', 'DESC'],
+    ];
 
     const { rows, count } = await Ticket.findAndCountAll({
       where,
       offset,
       limit,
       include: [
-        { model: User, as: 'requester', attributes: ['id', 'name', 'email'] },
-        { model: User, as: 'technician', attributes: ['id', 'name', 'email'] },
+        { model: User, as: 'requester', attributes: ['id', 'name', 'email', 'area'] },
+        { model: User, as: 'technician', attributes: ['id', 'name', 'email', 'area'] },
       ],
-      order: [['createdAt', 'DESC']],
+      order: order as any,
     });
 
     return { tickets: rows, total: count };
@@ -101,8 +140,8 @@ export class TicketService {
   async findById(id: number): Promise<Ticket> {
     const ticket = await Ticket.findByPk(id, {
       include: [
-        { model: User, as: 'requester', attributes: ['id', 'name', 'email'] },
-        { model: User, as: 'technician', attributes: ['id', 'name', 'email'] },
+        { model: User, as: 'requester', attributes: ['id', 'name', 'email', 'area'] },
+        { model: User, as: 'technician', attributes: ['id', 'name', 'email', 'area'] },
         {
           model: TicketComment,
           as: 'comments',
@@ -113,8 +152,11 @@ export class TicketService {
           model: TicketHistory,
           as: 'histories',
           include: [{ model: User, as: 'author', attributes: ['id', 'name', 'email'] }],
-          order: [['createdAt', 'ASC']],
         },
+      ],
+      order: [
+        [{ model: TicketHistory, as: 'histories' }, 'createdAt', 'DESC'],
+        [{ model: TicketComment, as: 'comments' }, 'createdAt', 'ASC'],
       ],
     });
 
@@ -132,6 +174,18 @@ export class TicketService {
     if (data.title && data.title !== ticket.title) {
       changes.push({ field: 'title', oldValue: ticket.title, newValue: data.title });
     }
+    if (data.description && data.description !== ticket.description) {
+      changes.push({ field: 'description', oldValue: ticket.description, newValue: data.description });
+    }
+    if (data.category && data.category !== ticket.category) {
+      changes.push({ field: 'category', oldValue: ticket.category, newValue: data.category });
+    }
+    if (data.location && data.location !== ticket.location) {
+      changes.push({ field: 'location', oldValue: ticket.location, newValue: data.location });
+    }
+    if (data.attachments !== undefined && JSON.stringify(data.attachments) !== JSON.stringify(ticket.attachments || [])) {
+      changes.push({ field: 'attachments', oldValue: JSON.stringify(ticket.attachments || []), newValue: JSON.stringify(data.attachments) });
+    }
     if (data.status && data.status !== ticket.status) {
       changes.push({ field: 'status', oldValue: ticket.status, newValue: data.status });
     }
@@ -148,11 +202,6 @@ export class TicketService {
     if (data.status === 'resolved' && ticket.status !== 'resolved') {
       updateData.resolutionDate = new Date();
     }
-    if (data.assignedTo && !data.status && ticket.status === 'pending_assignment') {
-      updateData.status = 'assigned';
-      changes.push({ field: 'status', oldValue: ticket.status, newValue: 'assigned' });
-    }
-
     await ticket.update(updateData);
 
     for (const change of changes) {
@@ -173,16 +222,34 @@ export class TicketService {
       });
     }
 
+    if (changes.length > 0) {
+      await this.createAudit({
+        userId: actor.userId,
+        action: 'ticket_updated',
+        entity: 'ticket',
+        entityId: id,
+        ipAddress: actor.ipAddress,
+        oldData: changes.reduce<Record<string, unknown>>((acc, change) => {
+          acc[change.field] = change.oldValue;
+          return acc;
+        }, {}),
+        newData: changes.reduce<Record<string, unknown>>((acc, change) => {
+          acc[change.field] = change.newValue;
+          return acc;
+        }, {}),
+      });
+    }
+
     return this.findById(id);
   }
 
   async delete(id: number): Promise<void> {
     const ticket = await Ticket.findByPk(id);
     if (!ticket) throw new NotFoundError('Ticket');
-    await ticket.destroy();
+    throw new ForbiddenError('Tickets cannot be deleted because historical traceability must be preserved');
   }
 
-  async addComment(ticketId: number, userId: number, comment: string): Promise<TicketComment> {
+  async addComment(ticketId: number, userId: number, comment: string, ipAddress?: string | null): Promise<TicketComment> {
     const ticket = await Ticket.findByPk(ticketId);
     if (!ticket) throw new NotFoundError('Ticket');
 
@@ -208,12 +275,21 @@ export class TicketService {
       comment,
     });
 
+    await this.createAudit({
+      userId,
+      action: 'ticket_comment_added',
+      entity: 'ticket',
+      entityId: ticketId,
+      ipAddress,
+      newData: { comment },
+    });
+
     return created;
   }
 
   async assign(id: number, assignedTo: number, priority: TicketPriority | null, actor: TicketActionContext) {
     if (actor.role !== 'admin') throw new ForbiddenError('Only administrators can assign tickets');
-    return this.update(id, { assignedTo, priority, status: 'assigned' }, actor);
+    return this.update(id, { assignedTo, priority }, actor);
   }
 
   async setPriority(id: number, priority: TicketPriority, actor: TicketActionContext) {
@@ -263,18 +339,18 @@ export class TicketService {
 
   async close(id: number, actor: TicketActionContext, comment?: string) {
     if (actor.role !== 'admin') throw new ForbiddenError('Only administrators can close tickets');
-    return this.update(id, { status: 'closed', comment }, actor);
+    return this.update(id, { status: 'resolved', comment }, actor);
   }
 
   async getDashboardStats() {
     const totalTickets = await Ticket.count();
-    const openTickets = await Ticket.count({ where: { status: { [Op.in]: ['open', 'pending_assignment', 'assigned', 'in_progress', 'on_hold', 'pending'] } } });
-    const closedTickets = await Ticket.count({ where: { status: 'closed' } });
+    const openTickets = await Ticket.count({ where: { status: { [Op.in]: ['pending', 'in_progress'] } } });
+    const closedTickets = await Ticket.count({ where: { status: 'resolved' } });
     const byPriority = {
-      low: await Ticket.count({ where: { priority: 'low', status: { [Op.ne]: 'closed' } } }),
-      medium: await Ticket.count({ where: { priority: 'medium', status: { [Op.ne]: 'closed' } } }),
-      high: await Ticket.count({ where: { priority: 'high', status: { [Op.ne]: 'closed' } } }),
-      critical: await Ticket.count({ where: { priority: 'critical', status: { [Op.ne]: 'closed' } } }),
+      low: await Ticket.count({ where: { priority: 'low', status: { [Op.ne]: 'resolved' } } }),
+      medium: await Ticket.count({ where: { priority: 'medium', status: { [Op.ne]: 'resolved' } } }),
+      high: await Ticket.count({ where: { priority: 'high', status: { [Op.ne]: 'resolved' } } }),
+      critical: await Ticket.count({ where: { priority: 'critical', status: { [Op.ne]: 'resolved' } } }),
     };
 
     return { totalTickets, openTickets, closedTickets, byPriority };
@@ -302,6 +378,18 @@ export class TicketService {
         throw new ForbiddenError('Technicians cannot set that status');
       }
     }
+    if (data.status && data.status !== ticket.status) {
+      this.ensureValidStatusTransition(ticket.status, data.status, actor.role);
+    }
+  }
+
+  private ensureValidStatusTransition(current: TicketStatus, next: TicketStatus, role: AuthPayload['role']) {
+    if (!technicianStatuses.includes(current) || !technicianStatuses.includes(next)) {
+      throw new ForbiddenError('Invalid ticket status');
+    }
+    if (role !== 'admin' && role !== 'technician') {
+      throw new ForbiddenError('You cannot change ticket status');
+    }
   }
 
   private resolveHistoryAction(field: string, ticket: Ticket, data: UpdateTicketData) {
@@ -309,11 +397,30 @@ export class TicketService {
     if (field === 'assignedTo') return 'ticket_assigned';
     if (field === 'priority') return 'priority_defined';
     if (field === 'status' && data.status === 'resolved') return 'ticket_resolved';
-    if (field === 'status' && data.status === 'closed') return 'ticket_closed';
     return 'status_updated';
   }
 
   private createHistory(data: any) {
     return TicketHistory.create(data);
+  }
+
+  private createAudit(data: {
+    userId: number;
+    action: string;
+    entity: string;
+    entityId?: number | null;
+    ipAddress?: string | null;
+    oldData?: Record<string, unknown> | null;
+    newData?: Record<string, unknown> | null;
+  }) {
+    return AuditLog.create({
+      userId: data.userId,
+      action: data.action,
+      entity: data.entity,
+      entityId: data.entityId ?? null,
+      ipAddress: data.ipAddress ?? null,
+      oldData: data.oldData ?? null,
+      newData: data.newData ?? null,
+    });
   }
 }

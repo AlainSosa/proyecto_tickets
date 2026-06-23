@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { UserService } from '../services/user.service';
 import { sendSuccess, sendPaginated } from '../utils/response';
+import { isInstitutionalArea } from '../constants/institutionalAreas';
 
 const userService = new UserService();
 
@@ -19,9 +20,11 @@ export class UserController {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 10;
       const role = req.query.role as string;
+      const requestedArea = req.query.area as string;
+      const area = isInstitutionalArea(requestedArea) ? requestedArea : undefined;
       const search = req.query.search as string;
 
-      const { users, total } = await userService.findAll({ page, limit, role, search });
+      const { users, total } = await userService.findAll({ page, limit, role, area, search });
       sendPaginated(res, users, total, page, limit);
     } catch (error) {
       next(error);

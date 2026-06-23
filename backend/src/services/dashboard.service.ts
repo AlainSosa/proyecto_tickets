@@ -1,11 +1,16 @@
 import { Op } from 'sequelize';
 import { Asset, NetworkPoint, Ticket, User } from '../database/models';
+import { INSTITUTIONAL_AREAS } from '../constants/institutionalAreas';
 
-type TicketStatus = 'open' | 'pending_assignment' | 'assigned' | 'pending' | 'in_progress' | 'on_hold' | 'resolved' | 'closed' | 'canceled';
+type TicketStatus = 'pending' | 'in_progress' | 'resolved';
 type TicketPriority = 'low' | 'medium' | 'high' | 'critical';
+interface DateRange {
+  dateFrom?: Date;
+  dateTo?: Date;
+}
 
-const STATUS_VALUES: TicketStatus[] = ['pending_assignment', 'assigned', 'in_progress', 'on_hold', 'resolved', 'closed', 'canceled'];
-const OPEN_STATUS_VALUES: TicketStatus[] = ['open', 'pending_assignment', 'assigned', 'pending', 'in_progress', 'on_hold'];
+const STATUS_VALUES: TicketStatus[] = ['pending', 'in_progress', 'resolved'];
+const OPEN_STATUS_VALUES: TicketStatus[] = ['pending', 'in_progress'];
 const CATEGORY_VALUES = ['Red', 'Impresoras', 'Computadoras', 'Telefonía', 'Correo', 'Software', 'Otros'];
 
 function startOfMonth(date = new Date()): Date {
@@ -22,6 +27,11 @@ function monthKey(date: Date): string {
 
 function monthLabel(date: Date): string {
   return date.toLocaleDateString('es-ES', { month: 'short', year: '2-digit' });
+}
+
+function ticketDateWhere(range?: DateRange) {
+  if (!range?.dateFrom || !range?.dateTo) return {};
+  return { createdAt: { [Op.gte]: range.dateFrom, [Op.lt]: range.dateTo } };
 }
 
 function normalizeText(value: string): string {
@@ -45,13 +55,22 @@ function inferCategory(ticket: Pick<Ticket, 'title' | 'description'>): string {
 }
 
 export class DashboardService {
-  async getSummary() {
+  async getSummary(range?: DateRange) {
     const currentMonth = startOfMonth();
     const nextMonth = addMonths(currentMonth, 1);
+    const createdAtWhere = ticketDateWhere(range);
+    const resolvedDateWhere = range?.dateFrom && range?.dateTo
+      ? { resolutionDate: { [Op.gte]: range.dateFrom, [Op.lt]: range.dateTo } }
+      : { resolutionDate: { [Op.gte]: currentMonth, [Op.lt]: nextMonth } };
 
     const [
-      openTickets,
+      totalTickets,
+      pendingTickets,
+      assignedTickets,
       inProgressTickets,
+      onHoldTickets,
+      resolvedTickets,
+      closedTickets,
       criticalTickets,
       resolvedThisMonth,
       totalAssets,
@@ -59,18 +78,24 @@ export class DashboardService {
       totalNetworkPoints,
       inactiveNetworkPoints,
     ] = await Promise.all([
-      Ticket.count({ where: { status: { [Op.in]: OPEN_STATUS_VALUES } } }),
-      Ticket.count({ where: { status: 'in_progress' } }),
+      Ticket.count({ where: createdAtWhere }),
+      Ticket.count({ where: { ...createdAtWhere, status: 'pending' } }),
+      Ticket.count({ where: { ...createdAtWhere, status: 'pending', assignedTo: { [Op.ne]: null } } }),
+      Ticket.count({ where: { ...createdAtWhere, status: 'in_progress' } }),
+      Promise.resolve(0),
+      Ticket.count({ where: { ...createdAtWhere, status: 'resolved' } }),
+      Promise.resolve(0),
       Ticket.count({
         where: {
+          ...createdAtWhere,
           priority: { [Op.in]: ['high', 'critical'] as TicketPriority[] },
-          status: { [Op.notIn]: ['resolved', 'closed', 'canceled'] as TicketStatus[] },
+          status: { [Op.ne]: 'resolved' },
         },
       }),
       Ticket.count({
         where: {
           status: 'resolved',
-          resolutionDate: { [Op.gte]: currentMonth, [Op.lt]: nextMonth },
+          ...resolvedDateWhere,
         },
       }),
       Asset.count(),
@@ -80,10 +105,17 @@ export class DashboardService {
     ]);
 
     return {
-      openTickets,
+      totalTickets,
+      openTickets: pendingTickets + inProgressTickets,
+      pendingTickets,
+      assignedTickets,
       inProgressTickets,
+      onHoldTickets,
+      resolvedTickets,
+      closedTickets,
       criticalTickets,
       resolvedThisMonth,
+      byPriority: await this.getTicketsByPriority(range),
       totalAssets,
       assetsInMaintenance,
       totalNetworkPoints,
@@ -91,27 +123,34 @@ export class DashboardService {
     };
   }
 
-  async getTicketsByStatus() {
+  async getTicketsByStatus(range?: DateRange) {
+    const createdAtWhere = ticketDateWhere(range);
     const counts = await Promise.all(
       STATUS_VALUES.map(async (status) => ({
         status,
-        value: await Ticket.count({ where: { status } }),
+        value: await Ticket.count({ where: { ...createdAtWhere, status } }),
       }))
     );
 
     return counts;
   }
 
-  async getTicketsByMonth() {
-    const firstMonth = addMonths(startOfMonth(), -5);
+  async getTicketsByMonth(range?: DateRange) {
+    const firstMonth = range?.dateFrom ? startOfMonth(range.dateFrom) : addMonths(startOfMonth(), -5);
+    const lastMonth = range?.dateTo ? startOfMonth(new Date(range.dateTo.getTime() - 1)) : startOfMonth();
     const tickets = await Ticket.findAll({
       attributes: ['id', 'createdAt'],
-      where: { createdAt: { [Op.gte]: firstMonth } },
+      where: range?.dateFrom && range?.dateTo
+        ? { createdAt: { [Op.gte]: range.dateFrom, [Op.lt]: range.dateTo } }
+        : { createdAt: { [Op.gte]: firstMonth } },
       order: [['createdAt', 'ASC']],
     });
 
     const buckets = new Map<string, { month: string; label: string; value: number }>();
-    for (let index = 0; index < 6; index += 1) {
+    const monthCount = range?.dateFrom && range?.dateTo
+      ? Math.max(1, (lastMonth.getFullYear() - firstMonth.getFullYear()) * 12 + lastMonth.getMonth() - firstMonth.getMonth() + 1)
+      : 6;
+    for (let index = 0; index < monthCount; index += 1) {
       const date = addMonths(firstMonth, index);
       buckets.set(monthKey(date), { month: monthKey(date), label: monthLabel(date), value: 0 });
     }
@@ -126,14 +165,15 @@ export class DashboardService {
     return Array.from(buckets.values());
   }
 
-  async getTicketsByCategory() {
+  async getTicketsByCategory(range?: DateRange) {
     const tickets = await Ticket.findAll({
-      attributes: ['id', 'title', 'description'],
+      attributes: ['id', 'title', 'description', 'category'],
+      where: ticketDateWhere(range),
     });
 
     const counts = new Map(CATEGORY_VALUES.map((category) => [category, 0]));
     for (const ticket of tickets) {
-      const category = inferCategory(ticket);
+      const category = ticket.category || inferCategory(ticket);
       counts.set(category, (counts.get(category) || 0) + 1);
     }
 
@@ -143,9 +183,101 @@ export class DashboardService {
     }));
   }
 
-  async getRecentTickets() {
+  async getTicketsByArea(range?: DateRange) {
+    const createdAtWhere = ticketDateWhere(range);
+    return Promise.all(
+      INSTITUTIONAL_AREAS.map(async (area) => ({
+        area,
+        value: await Ticket.count({ where: { ...createdAtWhere, location: area } }),
+      }))
+    );
+  }
+
+  async getTicketsByPriority(range?: DateRange) {
+    const createdAtWhere = ticketDateWhere(range);
+    const priorities: TicketPriority[] = ['low', 'medium', 'high', 'critical'];
+    const entries = await Promise.all(
+      priorities.map(async (priority) => [priority, await Ticket.count({ where: { ...createdAtWhere, priority } })])
+    );
+
+    return Object.fromEntries(entries) as Record<TicketPriority, number>;
+  }
+
+  async getTechnicianMetrics(range?: DateRange): Promise<Array<{
+    technicianId: number;
+    technicianName: string;
+    assignedTickets: number;
+    resolvedTickets: number;
+    averageResolutionHours: number;
+  }>> {
+    const technicians = await User.findAll({
+      where: { role: 'technician' },
+      attributes: ['id', 'name', 'email'],
+      include: [{
+        model: Ticket,
+        as: 'assignedTickets',
+        attributes: ['id', 'status', 'createdAt', 'resolutionDate'],
+        where: ticketDateWhere(range),
+        required: false,
+      }],
+      order: [['name', 'ASC']],
+    });
+
+    return technicians.map((technician) => {
+      const tickets = (technician as any).assignedTickets as Ticket[] || [];
+      const resolved = tickets.filter((ticket) => ticket.status === 'resolved');
+      const resolutionHours = resolved
+        .filter((ticket) => ticket.resolutionDate)
+        .map((ticket) => (new Date(ticket.resolutionDate!).getTime() - new Date(ticket.createdAt).getTime()) / 36e5);
+      const averageResolutionHours = resolutionHours.length
+        ? Number((resolutionHours.reduce((sum, value) => sum + value, 0) / resolutionHours.length).toFixed(1))
+        : 0;
+
+      return {
+        technicianId: technician.id,
+        technicianName: technician.name,
+        assignedTickets: tickets.length,
+        resolvedTickets: resolved.length,
+        averageResolutionHours,
+      };
+    });
+  }
+
+  async getResolutionTrend(range?: DateRange) {
+    const firstMonth = range?.dateFrom ? startOfMonth(range.dateFrom) : addMonths(startOfMonth(), -5);
+    const lastMonth = range?.dateTo ? startOfMonth(new Date(range.dateTo.getTime() - 1)) : startOfMonth();
+    const tickets = await Ticket.findAll({
+      attributes: ['id', 'resolutionDate'],
+      where: {
+        resolutionDate: range?.dateFrom && range?.dateTo
+          ? { [Op.gte]: range.dateFrom, [Op.lt]: range.dateTo }
+          : { [Op.gte]: firstMonth },
+        status: 'resolved',
+      },
+      order: [['resolutionDate', 'ASC']],
+    });
+
+    const buckets = new Map<string, { month: string; label: string; value: number }>();
+    const monthCount = (lastMonth.getFullYear() - firstMonth.getFullYear()) * 12 + lastMonth.getMonth() - firstMonth.getMonth() + 1;
+    for (let index = 0; index < monthCount; index += 1) {
+      const date = addMonths(firstMonth, index);
+      buckets.set(monthKey(date), { month: monthKey(date), label: monthLabel(date), value: 0 });
+    }
+
+    for (const ticket of tickets) {
+      if (!ticket.resolutionDate) continue;
+      const key = monthKey(new Date(ticket.resolutionDate));
+      const bucket = buckets.get(key);
+      if (bucket) bucket.value += 1;
+    }
+
+    return Array.from(buckets.values());
+  }
+
+  async getRecentTickets(range?: DateRange) {
     return Ticket.findAll({
       limit: 8,
+      where: ticketDateWhere(range),
       include: [
         { model: User, as: 'requester', attributes: ['id', 'name', 'email'] },
         { model: User, as: 'technician', attributes: ['id', 'name', 'email'] },
@@ -154,12 +286,13 @@ export class DashboardService {
     });
   }
 
-  async getCriticalTickets() {
+  async getCriticalTickets(range?: DateRange) {
     return Ticket.findAll({
       limit: 8,
       where: {
+        ...ticketDateWhere(range),
         priority: { [Op.in]: ['high', 'critical'] as TicketPriority[] },
-        status: { [Op.notIn]: ['resolved', 'closed', 'canceled'] as TicketStatus[] },
+        status: { [Op.ne]: 'resolved' },
       },
       include: [
         { model: User, as: 'requester', attributes: ['id', 'name', 'email'] },
@@ -198,13 +331,13 @@ export class DashboardService {
     return {
       tickets: {
         totalTickets: statusCounts.reduce((sum, item) => sum + item.value, 0),
-        openTickets: summary.openTickets + summary.inProgressTickets,
-        closedTickets: getStatus('closed'),
+        openTickets: summary.openTickets,
+        closedTickets: getStatus('resolved'),
         byPriority: {
-          low: await Ticket.count({ where: { priority: 'low', status: { [Op.ne]: 'closed' } } }),
-          medium: await Ticket.count({ where: { priority: 'medium', status: { [Op.ne]: 'closed' } } }),
-          high: await Ticket.count({ where: { priority: 'high', status: { [Op.ne]: 'closed' } } }),
-          critical: await Ticket.count({ where: { priority: 'critical', status: { [Op.ne]: 'closed' } } }),
+          low: await Ticket.count({ where: { priority: 'low', status: { [Op.ne]: 'resolved' } } }),
+          medium: await Ticket.count({ where: { priority: 'medium', status: { [Op.ne]: 'resolved' } } }),
+          high: await Ticket.count({ where: { priority: 'high', status: { [Op.ne]: 'resolved' } } }),
+          critical: await Ticket.count({ where: { priority: 'critical', status: { [Op.ne]: 'resolved' } } }),
         },
       },
       assets: {

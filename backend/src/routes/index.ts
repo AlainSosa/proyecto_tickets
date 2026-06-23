@@ -7,6 +7,7 @@ import extensionHandler from '../handlers/extension.handler';
 import maintenanceHandler from '../handlers/maintenance.handler';
 import userHandler from '../handlers/user.handler';
 import dashboardHandler from '../handlers/dashboard.handler';
+import auditHandler from '../handlers/audit.handler';
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use('/extensions', extensionHandler);
 router.use('/maintenance', maintenanceHandler);
 router.use('/users', userHandler);
 router.use('/dashboard', dashboardHandler);
+router.use('/audit', auditHandler);
 
 export default router;
