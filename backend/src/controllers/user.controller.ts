@@ -9,7 +9,7 @@ export class UserController {
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       const user = await userService.create(req.body);
-      sendSuccess(res, user, 'User created', 201);
+      sendSuccess(res, user, 'Usuario creado correctamente', 201);
     } catch (error) {
       next(error);
     }
@@ -43,7 +43,7 @@ export class UserController {
   async update(req: Request, res: Response, next: NextFunction) {
     try {
       const user = await userService.update(parseInt(req.params.id), req.body);
-      sendSuccess(res, user, 'User updated');
+      sendSuccess(res, user, 'Usuario actualizado correctamente');
     } catch (error) {
       next(error);
     }
@@ -52,7 +52,7 @@ export class UserController {
   async delete(req: Request, res: Response, next: NextFunction) {
     try {
       await userService.delete(parseInt(req.params.id));
-      sendSuccess(res, null, 'User deleted');
+      sendSuccess(res, null, 'Usuario eliminado correctamente');
     } catch (error) {
       next(error);
     }

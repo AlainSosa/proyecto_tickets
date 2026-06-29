@@ -4,14 +4,14 @@ import { ValidationError } from '../utils/errors';
 import { INSTITUTIONAL_AREAS } from '../constants/institutionalAreas';
 
 const loginSchema = z.object({
-  email: z.string().email('Invalid email format'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  email: z.string().email('El formato del correo no es válido'),
+  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
 });
 
 const registerSchema = z.object({
-  name: z.string().min(3, 'Name must be at least 3 characters').max(150),
-  email: z.string().email('Invalid email format'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  name: z.string().min(3, 'El nombre debe tener al menos 3 caracteres').max(150),
+  email: z.string().email('El formato del correo no es válido'),
+  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
   role: z.enum(['admin', 'technician', 'user']).optional(),
   area: z.enum(INSTITUTIONAL_AREAS),
 });

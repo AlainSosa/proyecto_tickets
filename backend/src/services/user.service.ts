@@ -23,7 +23,7 @@ interface PaginationParams {
 export class UserService {
   async create(data: CreateUserData): Promise<Partial<User>> {
     const existing = await User.findOne({ where: { email: data.email } });
-    if (existing) throw new ConflictError('Email already registered');
+    if (existing) throw new ConflictError('El correo ya está registrado');
 
     const passwordHash = await bcrypt.hash(data.password, 10);
     const user = await User.create({ ...data, password: passwordHash });
@@ -64,13 +64,13 @@ export class UserService {
     const user = await User.findByPk(id, {
       attributes: { exclude: ['password'] },
     });
-    if (!user) throw new NotFoundError('User');
+    if (!user) throw new NotFoundError('Usuario');
     return user;
   }
 
   async update(id: number, data: Partial<CreateUserData>): Promise<Partial<User>> {
     const user = await User.findByPk(id);
-    if (!user) throw new NotFoundError('User');
+    if (!user) throw new NotFoundError('Usuario');
 
     const updateData: any = { ...data };
     if (data.password) {
@@ -83,7 +83,7 @@ export class UserService {
 
   async delete(id: number): Promise<void> {
     const user = await User.findByPk(id);
-    if (!user) throw new NotFoundError('User');
+    if (!user) throw new NotFoundError('Usuario');
     await user.destroy();
   }
 }

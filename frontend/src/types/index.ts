@@ -257,3 +257,87 @@ export interface DashboardTechnicianMetric {
   resolvedTickets: number;
   averageResolutionHours: number;
 }
+
+export type PredictiveRiskLevel = 'low' | 'medium' | 'high';
+
+export interface PredictiveRecurringAsset {
+  assetId: number;
+  internalCode: string;
+  type: AssetType;
+  location: InstitutionalArea | null;
+  assignedUser: string | null;
+  ticketCount: number;
+  mainIncidentType: string;
+  riskLevel: PredictiveRiskLevel;
+  riskLabel: string;
+  recommendation: string;
+}
+
+export interface PredictiveCriticalArea {
+  area: InstitutionalArea;
+  ticketCount: number;
+  previousTicketCount: number;
+  trendPercent: number;
+  trend: 'up' | 'down' | 'stable';
+}
+
+export interface PredictiveRecurringUser {
+  userId: number;
+  userName: string;
+  area: InstitutionalArea;
+  ticketCount: number;
+  mainIncidentType: string;
+  frequencyPerWeek: number;
+  riskLevel: PredictiveRiskLevel;
+  recommendation: string;
+}
+
+export interface PredictiveTechnicianWorkload {
+  technicianId: number;
+  technicianName: string;
+  assignedTickets: number;
+  resolvedTickets: number;
+  averageResolutionHours: number;
+  currentLoad: number;
+  workloadLevel: PredictiveRiskLevel;
+}
+
+export interface PredictiveCriticalAsset {
+  assetId: number;
+  internalCode: string;
+  type: AssetType;
+  location: InstitutionalArea | null;
+  historicalTicketCount: number;
+  mainIncidentType: string;
+  averageDaysBetweenFailures: number | null;
+  probabilityScore: number;
+  riskLevel: PredictiveRiskLevel;
+  riskLabel: string;
+}
+
+export interface PredictiveRepetitiveIncident {
+  category: string;
+  ticketCount: number;
+  riskLevel: PredictiveRiskLevel;
+}
+
+export interface PredictiveAnalysis {
+  period: {
+    dateFrom: string;
+    dateTo: string;
+    days: number;
+  };
+  thresholds: {
+    mediumRiskTickets: number;
+    highRiskTickets: number;
+    periodDays: number;
+  };
+  recurringAssets: PredictiveRecurringAsset[];
+  criticalAreas: PredictiveCriticalArea[];
+  recurringUsers: PredictiveRecurringUser[];
+  technicianWorkload: PredictiveTechnicianWorkload[];
+  criticalAssets: PredictiveCriticalAsset[];
+  repetitiveIncidents: PredictiveRepetitiveIncident[];
+  monthlyTrends: DashboardMonthDatum[];
+  recommendations: string[];
+}

@@ -9,7 +9,7 @@ export class ExtensionController {
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       const ext = await service.create(req.body);
-      sendSuccess(res, ext, 'Extension created', 201);
+      sendSuccess(res, ext, 'Extensión creada correctamente', 201);
     } catch (error) {
       next(error);
     }
@@ -43,7 +43,7 @@ export class ExtensionController {
   async update(req: Request, res: Response, next: NextFunction) {
     try {
       const ext = await service.update(parseInt(req.params.id), req.body);
-      sendSuccess(res, ext, 'Extension updated');
+      sendSuccess(res, ext, 'Extensión actualizada correctamente');
     } catch (error) {
       next(error);
     }
@@ -52,7 +52,7 @@ export class ExtensionController {
   async delete(req: Request, res: Response, next: NextFunction) {
     try {
       await service.delete(parseInt(req.params.id));
-      sendSuccess(res, null, 'Extension deleted');
+      sendSuccess(res, null, 'Extensión eliminada correctamente');
     } catch (error) {
       next(error);
     }

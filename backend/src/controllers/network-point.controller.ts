@@ -9,7 +9,7 @@ export class NetworkPointController {
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       const point = await service.create(req.body);
-      sendSuccess(res, point, 'Network point created', 201);
+      sendSuccess(res, point, 'Punto de red creado correctamente', 201);
     } catch (error) {
       next(error);
     }
@@ -43,7 +43,7 @@ export class NetworkPointController {
   async update(req: Request, res: Response, next: NextFunction) {
     try {
       const point = await service.update(parseInt(req.params.id), req.body);
-      sendSuccess(res, point, 'Network point updated');
+      sendSuccess(res, point, 'Punto de red actualizado correctamente');
     } catch (error) {
       next(error);
     }
@@ -52,7 +52,7 @@ export class NetworkPointController {
   async delete(req: Request, res: Response, next: NextFunction) {
     try {
       await service.delete(parseInt(req.params.id));
-      sendSuccess(res, null, 'Network point deleted');
+      sendSuccess(res, null, 'Punto de red eliminado correctamente');
     } catch (error) {
       next(error);
     }

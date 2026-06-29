@@ -18,5 +18,6 @@ router.get('/recent-tickets', authenticate, controller.getRecentTickets.bind(con
 router.get('/critical-tickets', authenticate, controller.getCriticalTickets.bind(controller));
 router.get('/maintenance-assets', authenticate, controller.getMaintenanceAssets.bind(controller));
 router.get('/inactive-network-points', authenticate, controller.getInactiveNetworkPoints.bind(controller));
+router.get('/predictive-analysis', authenticate, controller.getPredictiveAnalysis.bind(controller));
 
 export default router;

@@ -6,9 +6,9 @@ import { INSTITUTIONAL_AREAS } from '../constants/institutionalAreas';
 const institutionalAreaSchema = z.enum(INSTITUTIONAL_AREAS);
 
 const createTicketSchema = z.object({
-  title: z.string().min(5, 'Title must be at least 5 characters').max(200),
-  description: z.string().min(10, 'Description must be at least 10 characters'),
-  category: z.string().min(2, 'Category is required').max(100),
+  title: z.string().min(5, 'El título debe tener al menos 5 caracteres').max(200),
+  description: z.string().min(10, 'La descripción debe tener al menos 10 caracteres'),
+  category: z.string().min(2, 'La categoría es obligatoria').max(100),
   location: institutionalAreaSchema,
   attachments: z.array(z.string().url()).max(5).optional(),
 });
@@ -31,7 +31,7 @@ const updateTicketSchema = z.object({
 });
 
 const addCommentSchema = z.object({
-  comment: z.string().min(1, 'Comment cannot be empty'),
+  comment: z.string().min(1, 'El comentario no puede estar vacío'),
 });
 
 const assignTicketSchema = z.object({
@@ -53,11 +53,11 @@ const followUpSchema = z.object({
   diagnosis: z.string().optional(),
   solution: z.string().optional(),
 }).refine((data) => data.comment || data.diagnosis || data.solution, {
-  message: 'At least one follow-up field is required',
+  message: 'Debes registrar al menos un comentario, diagnóstico o solución',
 });
 
 const solutionSchema = z.object({
-  solution: z.string().min(1, 'Solution cannot be empty'),
+  solution: z.string().min(1, 'La solución no puede estar vacía'),
 });
 
 const closeTicketSchema = z.object({

@@ -9,7 +9,7 @@ export class AssetController {
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       const asset = await assetService.create(req.body);
-      sendSuccess(res, asset, 'Asset created', 201);
+      sendSuccess(res, asset, 'Activo creado correctamente', 201);
     } catch (error) {
       next(error);
     }
@@ -44,7 +44,7 @@ export class AssetController {
   async update(req: Request, res: Response, next: NextFunction) {
     try {
       const asset = await assetService.update(parseInt(req.params.id), req.body);
-      sendSuccess(res, asset, 'Asset updated');
+      sendSuccess(res, asset, 'Activo actualizado correctamente');
     } catch (error) {
       next(error);
     }
@@ -53,7 +53,7 @@ export class AssetController {
   async delete(req: Request, res: Response, next: NextFunction) {
     try {
       await assetService.delete(parseInt(req.params.id));
-      sendSuccess(res, null, 'Asset deleted');
+      sendSuccess(res, null, 'Activo eliminado correctamente');
     } catch (error) {
       next(error);
     }

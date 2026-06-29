@@ -57,6 +57,9 @@ const historyFieldLabels = {
     priority: 'prioridad',
     assignedTo: 'técnico asignado',
     comment: 'comentario',
+    diagnosis: 'diagnóstico',
+    solution: 'solución',
+    requestedBy: 'solicitante',
   },
   pt: {
     title: 'título',
@@ -68,6 +71,56 @@ const historyFieldLabels = {
     priority: 'prioridade',
     assignedTo: 'técnico atribuído',
     comment: 'comentário',
+    diagnosis: 'diagnóstico',
+    solution: 'solução',
+    requestedBy: 'solicitante',
+  },
+} as const;
+
+const historyValueLabels = {
+  es: {
+    open: 'Abierto',
+    pending_assignment: 'Pendiente de asignación',
+    assigned: 'Asignado',
+    pending: 'Pendiente',
+    in_progress: 'En proceso',
+    on_hold: 'En espera',
+    resolved: 'Finalizado',
+    closed: 'Cerrado',
+    canceled: 'Cancelado',
+    low: 'Baja',
+    medium: 'Media',
+    high: 'Alta',
+    critical: 'Crítica',
+    user: 'Usuario',
+    technician: 'Técnico',
+    admin: 'Administrador',
+    undefined: 'Por definir',
+    null: 'Por definir',
+    'sin definir': 'Por definir',
+    'sin asignar': 'Sin asignar',
+  },
+  pt: {
+    open: 'Aberto',
+    pending_assignment: 'Pendente de atribuição',
+    assigned: 'Atribuído',
+    pending: 'Pendente',
+    in_progress: 'Em processo',
+    on_hold: 'Em espera',
+    resolved: 'Finalizado',
+    closed: 'Fechado',
+    canceled: 'Cancelado',
+    low: 'Baixa',
+    medium: 'Média',
+    high: 'Alta',
+    critical: 'Crítica',
+    user: 'Usuário',
+    technician: 'Técnico',
+    admin: 'Administrador',
+    undefined: 'A definir',
+    null: 'A definir',
+    'sin definir': 'A definir',
+    'sin asignar': 'Sem atribuição',
   },
 } as const;
 
@@ -99,12 +152,23 @@ export function TicketDetailPage() {
 
   const formatHistoryValue = (value?: string | null) => {
     if (!value || value === 'sin definir') return t('undefinedPriority');
-    if (['open', 'pending_assignment', 'assigned', 'pending', 'in_progress', 'on_hold', 'resolved', 'closed', 'canceled'].includes(value)) {
-      return t(getTicketStatusLabelKey(value));
-    }
+    const translated = historyValueLabels[language][value as keyof typeof historyValueLabels.es];
+    if (translated) return translated;
     if (value in priorityLabelKeys) return t(priorityLabelKeys[value as keyof typeof priorityLabelKeys]);
     if (value === 'sin asignar') return t('withoutAssignment');
     return value;
+  };
+
+  const formatHistoryDescription = (history: NonNullable<Ticket['histories']>[number]) => {
+    if (history.solution) return `Solución registrada: ${history.solution}`;
+    if (history.comment) return `Detalle registrado: ${history.comment}`;
+    const field = formatHistoryField(history.field);
+    const oldValue = formatHistoryValue(history.oldValue);
+    const newValue = formatHistoryValue(history.newValue);
+    if (!history.oldValue || oldValue === t('undefinedPriority')) {
+      return `Se registró ${field} como ${newValue}.`;
+    }
+    return `Se cambió ${field} de ${oldValue} a ${newValue}.`;
   };
 
   useEffect(() => {
@@ -559,7 +623,7 @@ export function TicketDetailPage() {
                 <p className="text-xs text-slate-500">{new Date(history.createdAt).toLocaleString(locale)}</p>
               </div>
               <p className="mt-1 text-slate-500">
-                {history.solution || history.comment || `${formatHistoryField(history.field)}: ${formatHistoryValue(history.oldValue)} ${t('to')} ${formatHistoryValue(history.newValue)}`}
+                {formatHistoryDescription(history)}
               </p>
               <p className="mt-1 text-xs text-slate-400">{history.author?.name || '-'}</p>
             </div>
@@ -582,9 +646,7 @@ export function TicketDetailPage() {
               <div>
                 <p className="text-slate-600 dark:text-slate-400">
                   <span className="font-medium text-primary-900 dark:text-white">{history.author?.name}</span>
-                  {' '}{formatHistoryAction(history.action)} <span className="font-medium">{formatHistoryField(history.field)}</span>
-                  {history.oldValue && <> {t('from')} <span className="text-slate-400 line-through">{formatHistoryValue(history.oldValue)}</span></>}
-                  {' '}{t('to')} <span className="font-medium">{formatHistoryValue(history.newValue)}</span>
+                  {' '}{formatHistoryDescription(history)}
                 </p>
                 {(history.comment || history.solution) && (
                   <p className="mt-1 text-sm text-slate-500">{history.solution || history.comment}</p>

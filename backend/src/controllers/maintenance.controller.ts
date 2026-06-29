@@ -8,7 +8,7 @@ export class MaintenanceController {
   async create(req: Request, res: Response, next: NextFunction) {
     try {
       const item = await service.create(req.body);
-      sendSuccess(res, item, 'Maintenance record created', 201);
+      sendSuccess(res, item, 'Registro de mantenimiento creado correctamente', 201);
     } catch (error) {
       next(error);
     }
@@ -40,7 +40,7 @@ export class MaintenanceController {
   async update(req: Request, res: Response, next: NextFunction) {
     try {
       const item = await service.update(parseInt(req.params.id), req.body);
-      sendSuccess(res, item, 'Maintenance record updated');
+      sendSuccess(res, item, 'Registro de mantenimiento actualizado correctamente');
     } catch (error) {
       next(error);
     }
@@ -49,7 +49,7 @@ export class MaintenanceController {
   async delete(req: Request, res: Response, next: NextFunction) {
     try {
       await service.delete(parseInt(req.params.id));
-      sendSuccess(res, null, 'Maintenance record deleted');
+      sendSuccess(res, null, 'Registro de mantenimiento eliminado correctamente');
     } catch (error) {
       next(error);
     }

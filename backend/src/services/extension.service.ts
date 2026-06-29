@@ -60,20 +60,20 @@ export class ExtensionService {
         { model: Asset, as: 'phone', attributes: ['id', 'internalCode', 'brand', 'model'] },
       ],
     });
-    if (!ext) throw new NotFoundError('Extension');
+    if (!ext) throw new NotFoundError('Extensión');
     return ext;
   }
 
   async update(id: number, data: Partial<CreateData>): Promise<Extension> {
     const ext = await Extension.findByPk(id);
-    if (!ext) throw new NotFoundError('Extension');
+    if (!ext) throw new NotFoundError('Extensión');
     await ext.update(data);
     return this.findById(id);
   }
 
   async delete(id: number): Promise<void> {
     const ext = await Extension.findByPk(id);
-    if (!ext) throw new NotFoundError('Extension');
+    if (!ext) throw new NotFoundError('Extensión');
     await ext.destroy();
   }
 }

@@ -10,12 +10,12 @@ export class AuthService {
     const user = await User.findOne({ where: { email, isActive: true } });
 
     if (!user) {
-      throw new UnauthorizedError('Invalid credentials');
+      throw new UnauthorizedError('Credenciales incorrectas');
     }
 
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
-      throw new UnauthorizedError('Invalid credentials');
+      throw new UnauthorizedError('Credenciales incorrectas');
     }
 
     const token = jwt.sign(
@@ -39,7 +39,7 @@ export class AuthService {
     const existingUser = await User.findOne({ where: { email: data.email } });
 
     if (existingUser) {
-      throw new ConflictError('Email already registered');
+      throw new ConflictError('El correo ya está registrado');
     }
 
     const passwordHash = await bcrypt.hash(data.password, 10);
@@ -66,7 +66,7 @@ export class AuthService {
   async getProfile(userId: number): Promise<Partial<User>> {
     const user = await User.findByPk(userId);
     if (!user) {
-      throw new UnauthorizedError('User not found');
+      throw new UnauthorizedError('Usuario no encontrado');
     }
 
     const { password: _, ...userWithoutPassword } = user.toJSON();

@@ -1,8 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import { DashboardService } from '../services/dashboard.service';
+import { PredictiveAnalysisService } from '../services/predictive-analysis.service';
 import { sendSuccess } from '../utils/response';
 
 const dashboardService = new DashboardService();
+const predictiveAnalysisService = new PredictiveAnalysisService();
 
 function getDateRange(req: Request) {
   const dateFrom = req.query.dateFrom ? new Date(req.query.dateFrom as string) : undefined;
@@ -112,6 +114,14 @@ export class DashboardController {
   async getInactiveNetworkPoints(_req: Request, res: Response, next: NextFunction) {
     try {
       sendSuccess(res, await dashboardService.getInactiveNetworkPoints());
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getPredictiveAnalysis(req: Request, res: Response, next: NextFunction) {
+    try {
+      sendSuccess(res, await predictiveAnalysisService.getAnalysis(getDateRange(req)));
     } catch (error) {
       next(error);
     }

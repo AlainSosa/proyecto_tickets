@@ -57,20 +57,20 @@ export class MaintenanceService {
         { model: User, as: 'technician', attributes: ['id', 'name', 'email'] },
       ],
     });
-    if (!item) throw new NotFoundError('Maintenance record');
+    if (!item) throw new NotFoundError('Registro de mantenimiento');
     return item;
   }
 
   async update(id: number, data: Partial<CreateData>): Promise<Maintenance> {
     const item = await Maintenance.findByPk(id);
-    if (!item) throw new NotFoundError('Maintenance record');
+    if (!item) throw new NotFoundError('Registro de mantenimiento');
     await item.update(data as any);
     return this.findById(id);
   }
 
   async delete(id: number): Promise<void> {
     const item = await Maintenance.findByPk(id);
-    if (!item) throw new NotFoundError('Maintenance record');
+    if (!item) throw new NotFoundError('Registro de mantenimiento');
     await item.destroy();
   }
 

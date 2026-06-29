@@ -246,7 +246,7 @@ export class TicketService {
   async delete(id: number): Promise<void> {
     const ticket = await Ticket.findByPk(id);
     if (!ticket) throw new NotFoundError('Ticket');
-    throw new ForbiddenError('Tickets cannot be deleted because historical traceability must be preserved');
+    throw new ForbiddenError('Los tickets no se eliminan porque se debe conservar la trazabilidad histórica');
   }
 
   async addComment(ticketId: number, userId: number, comment: string, ipAddress?: string | null): Promise<TicketComment> {
@@ -288,12 +288,12 @@ export class TicketService {
   }
 
   async assign(id: number, assignedTo: number, priority: TicketPriority | null, actor: TicketActionContext) {
-    if (actor.role !== 'admin') throw new ForbiddenError('Only administrators can assign tickets');
+    if (actor.role !== 'admin') throw new ForbiddenError('Solo los administradores pueden asignar tickets');
     return this.update(id, { assignedTo, priority }, actor);
   }
 
   async setPriority(id: number, priority: TicketPriority, actor: TicketActionContext) {
-    if (actor.role !== 'admin') throw new ForbiddenError('Only administrators can define priority');
+    if (actor.role !== 'admin') throw new ForbiddenError('Solo los administradores pueden definir la prioridad');
     return this.update(id, { priority }, actor);
   }
 
@@ -338,7 +338,7 @@ export class TicketService {
   }
 
   async close(id: number, actor: TicketActionContext, comment?: string) {
-    if (actor.role !== 'admin') throw new ForbiddenError('Only administrators can close tickets');
+    if (actor.role !== 'admin') throw new ForbiddenError('Solo los administradores pueden cerrar tickets');
     return this.update(id, { status: 'resolved', comment }, actor);
   }
 
@@ -358,24 +358,24 @@ export class TicketService {
 
   private async ensureCanAccess(ticket: Ticket, actor: TicketActionContext) {
     if (actor.role === 'user' && ticket.requestedBy !== actor.userId) {
-      throw new ForbiddenError('You can only access your own tickets');
+      throw new ForbiddenError('Solo puedes acceder a tus propios tickets');
     }
     if (actor.role === 'technician' && ticket.assignedTo !== actor.userId) {
-      throw new ForbiddenError('Technicians can only work assigned tickets');
+      throw new ForbiddenError('Los técnicos solo pueden trabajar tickets asignados');
     }
   }
 
   private async ensureCanModify(ticket: Ticket, actor: TicketActionContext, data: UpdateTicketData) {
     await this.ensureCanAccess(ticket, actor);
     if (actor.role === 'user') {
-      throw new ForbiddenError('Users cannot modify tickets after creation');
+      throw new ForbiddenError('Los usuarios no pueden modificar tickets después de crearlos');
     }
     if (actor.role === 'technician') {
       if (data.priority !== undefined || data.assignedTo !== undefined || data.title || data.description) {
-        throw new ForbiddenError('Technicians cannot assign tickets or modify priority');
+        throw new ForbiddenError('Los técnicos no pueden asignar tickets ni modificar la prioridad');
       }
       if (data.status && !technicianStatuses.includes(data.status)) {
-        throw new ForbiddenError('Technicians cannot set that status');
+        throw new ForbiddenError('Los técnicos no pueden establecer ese estado');
       }
     }
     if (data.status && data.status !== ticket.status) {
@@ -385,10 +385,10 @@ export class TicketService {
 
   private ensureValidStatusTransition(current: TicketStatus, next: TicketStatus, role: AuthPayload['role']) {
     if (!technicianStatuses.includes(current) || !technicianStatuses.includes(next)) {
-      throw new ForbiddenError('Invalid ticket status');
+      throw new ForbiddenError('Estado de ticket no válido');
     }
     if (role !== 'admin' && role !== 'technician') {
-      throw new ForbiddenError('You cannot change ticket status');
+      throw new ForbiddenError('No puedes cambiar el estado del ticket');
     }
   }
 

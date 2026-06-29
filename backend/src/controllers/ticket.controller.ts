@@ -17,7 +17,7 @@ export class TicketController {
         requestedBy: req.user!.id,
         ipAddress: req.ip,
       });
-      sendSuccess(res, ticket, 'Ticket created', 201);
+      sendSuccess(res, ticket, 'Ticket creado correctamente', 201);
     } catch (error) {
       next(error);
     }
@@ -50,10 +50,10 @@ export class TicketController {
     try {
       const ticket = await ticketService.findById(parseInt(req.params.id));
       if (req.user!.role === 'user' && ticket.requestedBy !== req.user!.id) {
-        throw new ForbiddenError('You can only access your own tickets');
+        throw new ForbiddenError('Solo puedes acceder a tus propios tickets');
       }
       if (req.user!.role === 'technician' && ticket.assignedTo !== req.user!.id) {
-        throw new ForbiddenError('Technicians can only access assigned tickets');
+        throw new ForbiddenError('Los técnicos solo pueden acceder a tickets asignados');
       }
       sendSuccess(res, ticket);
     } catch (error) {
@@ -68,7 +68,7 @@ export class TicketController {
         role: req.user!.role,
         ipAddress: req.ip,
       });
-      sendSuccess(res, ticket, 'Ticket updated');
+      sendSuccess(res, ticket, 'Ticket actualizado correctamente');
     } catch (error) {
       next(error);
     }
@@ -81,7 +81,7 @@ export class TicketController {
         role: req.user!.role,
         ipAddress: req.ip,
       });
-      sendSuccess(res, ticket, 'Ticket assigned');
+      sendSuccess(res, ticket, 'Ticket asignado correctamente');
     } catch (error) {
       next(error);
     }
@@ -94,7 +94,7 @@ export class TicketController {
         role: req.user!.role,
         ipAddress: req.ip,
       });
-      sendSuccess(res, ticket, 'Ticket priority updated');
+      sendSuccess(res, ticket, 'Prioridad actualizada correctamente');
     } catch (error) {
       next(error);
     }
@@ -107,7 +107,7 @@ export class TicketController {
         role: req.user!.role,
         ipAddress: req.ip,
       }, req.body.comment);
-      sendSuccess(res, ticket, 'Ticket status updated');
+      sendSuccess(res, ticket, 'Estado actualizado correctamente');
     } catch (error) {
       next(error);
     }
@@ -120,7 +120,7 @@ export class TicketController {
         role: req.user!.role,
         ipAddress: req.ip,
       }, req.body);
-      sendSuccess(res, ticket, 'Ticket follow-up added', 201);
+      sendSuccess(res, ticket, 'Seguimiento registrado correctamente', 201);
     } catch (error) {
       next(error);
     }
@@ -133,7 +133,7 @@ export class TicketController {
         role: req.user!.role,
         ipAddress: req.ip,
       }, req.body.solution);
-      sendSuccess(res, ticket, 'Ticket resolved');
+      sendSuccess(res, ticket, 'Ticket finalizado correctamente');
     } catch (error) {
       next(error);
     }
@@ -146,7 +146,7 @@ export class TicketController {
         role: req.user!.role,
         ipAddress: req.ip,
       }, req.body.comment);
-      sendSuccess(res, ticket, 'Ticket closed');
+      sendSuccess(res, ticket, 'Ticket cerrado correctamente');
     } catch (error) {
       next(error);
     }
@@ -155,7 +155,7 @@ export class TicketController {
   async delete(req: Request, res: Response, next: NextFunction) {
     try {
       await ticketService.delete(parseInt(req.params.id));
-      sendSuccess(res, null, 'Ticket deleted');
+      sendSuccess(res, null, 'Ticket eliminado correctamente');
     } catch (error) {
       next(error);
     }
@@ -166,10 +166,10 @@ export class TicketController {
       const ticketId = parseInt(req.params.id);
       const ticket = await ticketService.findById(ticketId);
       if (req.user!.role === 'user' && ticket.requestedBy !== req.user!.id) {
-        throw new ForbiddenError('You can only comment on your own tickets');
+        throw new ForbiddenError('Solo puedes comentar tus propios tickets');
       }
       if (req.user!.role === 'technician' && ticket.assignedTo !== req.user!.id) {
-        throw new ForbiddenError('Technicians can only comment on assigned tickets');
+        throw new ForbiddenError('Los técnicos solo pueden comentar tickets asignados');
       }
 
       const comment = await ticketService.addComment(
@@ -178,7 +178,7 @@ export class TicketController {
         req.body.comment,
         req.ip
       );
-      sendSuccess(res, comment, 'Comment added', 201);
+      sendSuccess(res, comment, 'Comentario agregado correctamente', 201);
     } catch (error) {
       next(error);
     }

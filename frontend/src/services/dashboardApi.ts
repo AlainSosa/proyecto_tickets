@@ -8,6 +8,7 @@ import {
   DashboardSummary,
   DashboardTechnicianMetric,
   NetworkPoint,
+  PredictiveAnalysis,
   TicketPriority,
   Ticket,
 } from '../types';
@@ -36,4 +37,5 @@ export const dashboardApi = {
   criticalTickets: (params?: Record<string, string>) => getDataWithParams<Ticket[]>('/dashboard/critical-tickets', params),
   maintenanceAssets: () => getData<Asset[]>('/dashboard/maintenance-assets'),
   inactiveNetworkPoints: () => getData<NetworkPoint[]>('/dashboard/inactive-network-points'),
+  predictiveAnalysis: (params?: Record<string, string>) => getDataWithParams<PredictiveAnalysis>('/dashboard/predictive-analysis', params),
 };

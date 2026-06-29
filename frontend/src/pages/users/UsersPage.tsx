@@ -32,7 +32,7 @@ export function UsersPage() {
 
   const columns: Column<User>[] = [
     { header: t('name'), accessor: 'name' },
-    { header: 'Email', accessor: 'email' },
+    { header: t('emailOrCpf'), accessor: 'email' },
     { header: t('role'), accessor: (u) => <span className={roleBadge[u.role]}>{t(roleLabelKeys[u.role])}</span> },
     { header: t('location'), accessor: 'area' },
     { header: t('enabled'), accessor: (u) => u.isActive ? <span className="badge-green">{t('yes')}</span> : <span className="badge-gray">{t('no')}</span> },
@@ -41,7 +41,7 @@ export function UsersPage() {
 
   const reportColumns: QuickReportColumn<User>[] = [
     { header: t('name'), value: (u) => u.name },
-    { header: 'Email', value: (u) => u.email },
+    { header: t('emailOrCpf'), value: (u) => u.email },
     { header: t('role'), value: (u) => t(roleLabelKeys[u.role]) },
     { header: t('location'), value: (u) => u.area },
     { header: t('enabled'), value: (u) => (u.isActive ? t('yes') : t('no')) },
@@ -119,7 +119,7 @@ function UserFormModal({ isOpen, onClose, user, onSave, onDelete }: { isOpen: bo
     <Modal isOpen={isOpen} onClose={onClose} title={user ? t('editUser') : t('newUser')}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div><label className="block text-sm font-medium mb-1">{t('name')}</label><input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="input" required /></div>
-        <div><label className="block text-sm font-medium mb-1">Email</label><input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="input" required /></div>
+        <div><label className="block text-sm font-medium mb-1">{t('emailOrCpf')}</label><input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} className="input" required /></div>
         <div><label className="block text-sm font-medium mb-1">{t('password')} {user && t('keepPassword')}</label><input type="password" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} className="input" minLength={user ? 0 : 6} required={!user} /></div>
         <div><label className="block text-sm font-medium mb-1">{t('role')}</label><select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} className="input"><option value="user">{t('user')}</option><option value="technician">{t('technician')}</option><option value="admin">{t('admin')}</option></select></div>
         <div>

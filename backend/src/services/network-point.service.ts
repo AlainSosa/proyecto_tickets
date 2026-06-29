@@ -55,20 +55,20 @@ export class NetworkPointService {
     const point = await NetworkPoint.findByPk(id, {
       include: [{ model: Asset, as: 'switch', attributes: ['id', 'internalCode', 'brand', 'model'] }],
     });
-    if (!point) throw new NotFoundError('Network point');
+    if (!point) throw new NotFoundError('Punto de red');
     return point;
   }
 
   async update(id: number, data: Partial<CreateData>): Promise<NetworkPoint> {
     const point = await NetworkPoint.findByPk(id);
-    if (!point) throw new NotFoundError('Network point');
+    if (!point) throw new NotFoundError('Punto de red');
     await point.update(data);
     return this.findById(id);
   }
 
   async delete(id: number): Promise<void> {
     const point = await NetworkPoint.findByPk(id);
-    if (!point) throw new NotFoundError('Network point');
+    if (!point) throw new NotFoundError('Punto de red');
     await point.destroy();
   }
 }

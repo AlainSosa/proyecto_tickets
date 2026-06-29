@@ -67,20 +67,20 @@ export class AssetService {
     const asset = await Asset.findByPk(id, {
       include: [{ model: User, as: 'assignedUser', attributes: ['id', 'name', 'email'] }],
     });
-    if (!asset) throw new NotFoundError('Asset');
+    if (!asset) throw new NotFoundError('Activo');
     return asset;
   }
 
   async update(id: number, data: Partial<CreateAssetData>): Promise<Asset> {
     const asset = await Asset.findByPk(id);
-    if (!asset) throw new NotFoundError('Asset');
+    if (!asset) throw new NotFoundError('Activo');
     await asset.update(data as any);
     return this.findById(id);
   }
 
   async delete(id: number): Promise<void> {
     const asset = await Asset.findByPk(id);
-    if (!asset) throw new NotFoundError('Asset');
+    if (!asset) throw new NotFoundError('Activo');
     await asset.destroy();
   }
 
