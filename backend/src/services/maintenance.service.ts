@@ -33,6 +33,9 @@ export class MaintenanceService {
     if (search) {
       where[Op.or] = [
         { observations: { [Op.iLike]: `%${search}%` } },
+        { '$asset.internalCode$': { [Op.iLike]: `%${search}%` } },
+        { '$asset.brand$': { [Op.iLike]: `%${search}%` } },
+        { '$asset.model$': { [Op.iLike]: `%${search}%` } },
       ];
     }
 
@@ -41,9 +44,11 @@ export class MaintenanceService {
       offset,
       limit,
       include: [
-        { model: Asset, attributes: ['id', 'internalCode', 'brand', 'model', 'type'] },
+        { model: Asset, as: 'asset', attributes: ['id', 'internalCode', 'brand', 'model', 'type'] },
         { model: User, as: 'technician', attributes: ['id', 'name', 'email'] },
       ],
+      distinct: true,
+      subQuery: false,
       order: [['createdAt', 'DESC']],
     });
 
@@ -53,7 +58,7 @@ export class MaintenanceService {
   async findById(id: number): Promise<Maintenance> {
     const item = await Maintenance.findByPk(id, {
       include: [
-        { model: Asset, attributes: ['id', 'internalCode', 'brand', 'model', 'type'] },
+        { model: Asset, as: 'asset', attributes: ['id', 'internalCode', 'brand', 'model', 'type'] },
         { model: User, as: 'technician', attributes: ['id', 'name', 'email'] },
       ],
     });

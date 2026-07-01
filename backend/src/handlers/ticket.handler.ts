@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { TicketController } from '../controllers/ticket.controller';
 import { authenticate, authorize } from '../middlewares/auth';
+import { normalizeTicketAttachments, ticketUpload } from '../middlewares/upload';
 import {
   validateAssignTicket,
   validateCloseTicket,
@@ -20,7 +21,7 @@ router.use(authenticate);
 
 router.get('/', controller.findAll.bind(controller));
 router.get('/:id', controller.findById.bind(controller));
-router.post('/', validateCreateTicket, controller.create.bind(controller));
+router.post('/', ticketUpload.array('attachments', 5), normalizeTicketAttachments, validateCreateTicket, controller.create.bind(controller));
 router.patch('/:id', authorize('admin', 'technician'), validateUpdateTicket, controller.update.bind(controller));
 router.patch('/:id/assign', authorize('admin'), validateAssignTicket, controller.assign.bind(controller));
 router.patch('/:id/priority', authorize('admin'), validatePriority, controller.setPriority.bind(controller));

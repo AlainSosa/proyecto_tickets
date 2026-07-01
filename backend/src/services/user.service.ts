@@ -10,6 +10,7 @@ interface CreateUserData {
   password: string;
   role: 'admin' | 'technician' | 'user';
   area: InstitutionalArea;
+  isActive?: boolean;
 }
 
 interface PaginationParams {

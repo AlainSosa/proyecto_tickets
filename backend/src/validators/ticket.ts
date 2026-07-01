@@ -4,13 +4,17 @@ import { ValidationError } from '../utils/errors';
 import { INSTITUTIONAL_AREAS } from '../constants/institutionalAreas';
 
 const institutionalAreaSchema = z.enum(INSTITUTIONAL_AREAS);
+const attachmentSchema = z.string().refine((value) => {
+  if (value.startsWith('/api/uploads/')) return true;
+  return z.string().url().safeParse(value).success;
+}, 'Cada adjunto debe ser un enlace válido o un archivo subido');
 
 const createTicketSchema = z.object({
   title: z.string().min(5, 'El título debe tener al menos 5 caracteres').max(200),
   description: z.string().min(10, 'La descripción debe tener al menos 10 caracteres'),
   category: z.string().min(2, 'La categoría es obligatoria').max(100),
   location: institutionalAreaSchema,
-  attachments: z.array(z.string().url()).max(5).optional(),
+  attachments: z.array(attachmentSchema).max(5).optional(),
 });
 
 const ticketStatusSchema = z.enum(['pending', 'in_progress', 'resolved']);
@@ -21,7 +25,7 @@ const updateTicketSchema = z.object({
   description: z.string().min(10).optional(),
   category: z.string().min(2).max(100).optional(),
   location: institutionalAreaSchema.optional(),
-  attachments: z.array(z.string().url()).max(5).optional(),
+  attachments: z.array(attachmentSchema).max(5).optional(),
   status: ticketStatusSchema.optional(),
   priority: ticketPrioritySchema.nullable().optional(),
   assignedTo: z.number().int().positive().nullable().optional(),

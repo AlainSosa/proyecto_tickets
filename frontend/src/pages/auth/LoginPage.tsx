@@ -112,7 +112,6 @@ export function LoginPage() {
 
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#043b63] via-[#006b4f] to-[#009739] p-4">
-      {/* Fondo con cruces */}
       <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle,_transparent_20%,_transparent_20%),linear-gradient(#ffffff_1px,transparent_1px),linear-gradient(90deg,#ffffff_1px,transparent_1px)] bg-[length:28px_28px]" />
 
       <div className="relative w-full max-w-md">
@@ -124,7 +123,6 @@ export function LoginPage() {
             <LanguageToggle />
           </div>
 
-          {/* Logo */}
           <div className="text-center">
             <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#009739] to-[#002776] shadow-lg">
               <Globe2 className="h-9 w-9 text-white" />
@@ -136,7 +134,6 @@ export function LoginPage() {
             <p className="mt-2 text-sm text-gray-500">{t("consularSystem")}</p>
           </div>
 
-          {/* Líneas bandera */}
           <div className="mt-8 mb-7 grid grid-cols-3 gap-0">
             <div className="h-1 rounded-l-full bg-[#009739]" />
             <div className="h-1 bg-[#FFDF00]" />
@@ -150,7 +147,6 @@ export function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email */}
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">
                 {t("emailOrCpf")}
@@ -169,7 +165,6 @@ export function LoginPage() {
               </div>
             </div>
 
-            {/* Password */}
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">
                 {t("password")}
@@ -196,7 +191,6 @@ export function LoginPage() {
               </div>
             </div>
 
-            {/* Remember */}
             <div className="flex items-center justify-between text-sm">
               <label className="flex items-center gap-2 text-gray-600">
                 <input
@@ -209,7 +203,6 @@ export function LoginPage() {
               </label>
             </div>
 
-            {/* Botón login */}
             <button
               type="submit"
               disabled={isLoading}
@@ -218,20 +211,6 @@ export function LoginPage() {
               {isLoading ? t("loggingIn") : t("login")}
             </button>
           </form>
-
-          {/* Usuarios actuales */}
-          <div className="mt-6 rounded-xl border border-gray-200 bg-white/70 p-4 text-xs text-gray-500 space-y-1">
-            <p>
-              <strong>Admin:</strong> admin@sistema.com / admin123
-            </p>
-            <p>
-              <strong>{t("technician")}:</strong> tecnico@sistema.com /
-              tecnico123
-            </p>
-            <p>
-              <strong>{t("user")}:</strong> usuario@sistema.com / usuario123
-            </p>
-          </div>
 
           <p className="mt-5 text-center text-sm text-gray-500">
             {t("noAccount")}{" "}

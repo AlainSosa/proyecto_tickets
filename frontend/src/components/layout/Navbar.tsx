@@ -98,8 +98,8 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
 
   const notificationLabel =
     user?.role === "admin"
-      ? `${notificationCount} tickets pendientes de asignación`
-      : `${notificationCount} tickets nuevos asignados`;
+      ? `${notificationCount} ${t("pendingReviewRequests").toLowerCase()}`
+      : `${notificationCount} ${t("assignedPendingTickets").toLowerCase()}`;
 
   return (
     <header className="sticky top-0 z-30 flex h-16 min-h-16 shrink-0 items-center gap-4 border-b-4 border-accent-500 bg-brazil-gradient px-4 text-white shadow-sm lg:px-6">
@@ -134,13 +134,13 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
               <div className="border-b border-slate-100 px-4 py-3 dark:border-slate-800">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-semibold">Notificaciones recientes</p>
+                    <p className="text-sm font-semibold">{t("notifications")}</p>
                     <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                      {user.role === "admin" ? "Solicitudes pendientes de revisión" : "Tickets asignados pendientes de atención"}
+                      {user.role === "admin" ? t("pendingReviewRequests") : t("assignedPendingTickets")}
                     </p>
                   </div>
                   {notificationCount > 0 && (
-                    <span className="badge-red shrink-0">{notificationCount} nuevas</span>
+                    <span className="badge-red shrink-0">{notificationCount} {t("newNotifications")}</span>
                   )}
                 </div>
               </div>
@@ -148,7 +148,7 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
               <div className="max-h-96 overflow-y-auto">
                 {notificationTickets.length === 0 ? (
                   <div className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
-                    No hay notificaciones nuevas.
+                    {t("noNewNotifications")}
                   </div>
                 ) : (
                   notificationTickets.map((ticket) => (
@@ -160,7 +160,7 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
                     >
                       <div className="flex items-center justify-between gap-3">
                         <span className="text-[11px] font-semibold uppercase text-brand-700 dark:text-brand-300">
-                          {user.role === "admin" ? "Nueva solicitud" : "Nueva asignación"}
+                          {user.role === "admin" ? t("newRequest") : t("newAssignment")}
                         </span>
                         <span className={getPriorityBadge(ticket.priority)}>
                           {ticket.priority ? t(priorityLabelKeys[ticket.priority]) : t("undefinedPriority")}
@@ -174,7 +174,7 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
                       <div className="mt-3 grid gap-1.5 text-xs text-slate-500 dark:text-slate-400">
                         <p className="flex items-center gap-2">
                           <UserRound className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate">{ticket.requester?.name || "Solicitante no disponible"}</span>
+                          <span className="truncate">{ticket.requester?.name || t("requesterUnavailable")}</span>
                         </p>
                         <p className="flex items-center gap-2">
                           <MapPin className="h-3.5 w-3.5 shrink-0" />
@@ -192,7 +192,7 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
 
               {notificationCount > notificationTickets.length && (
                 <div className="border-t border-slate-100 px-4 py-2 text-center text-xs text-slate-500 dark:border-slate-800 dark:text-slate-400">
-                  +{notificationCount - notificationTickets.length} notificaciones más
+                  +{notificationCount - notificationTickets.length} {t("moreNotifications")}
                 </div>
               )}
             </div>

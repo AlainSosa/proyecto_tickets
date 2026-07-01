@@ -129,6 +129,29 @@ const auditValueLabels = {
   },
 } as const;
 
+const auditSummaryText = {
+  es: {
+    ticketCreated: 'Se registró un nuevo ticket en el sistema.',
+    commentAdded: 'Se agregó un comentario al ticket.',
+    noDataChanges: 'Se registró una acción sin cambios de datos asociados.',
+    registeredAs: 'Se registró',
+    changedFrom: 'Se cambió',
+    as: 'como',
+    from: 'de',
+    to: 'a',
+  },
+  pt: {
+    ticketCreated: 'Um novo ticket foi registrado no sistema.',
+    commentAdded: 'Um comentário foi adicionado ao ticket.',
+    noDataChanges: 'Foi registrada uma ação sem alterações de dados associadas.',
+    registeredAs: 'Foi registrado',
+    changedFrom: 'Foi alterado',
+    as: 'como',
+    from: 'de',
+    to: 'para',
+  },
+} as const;
+
 function translateAction(action: string, language: Language) {
   return auditActionLabels[language][action as keyof typeof auditActionLabels.es] || action.replace(/_/g, ' ');
 }
@@ -157,23 +180,24 @@ function compactJson(value: Record<string, unknown> | null, language: Language) 
 }
 
 function buildAuditSummary(row: AuditLog, language: Language) {
-  if (row.action === 'ticket_created') return 'Se registró un nuevo ticket en el sistema.';
-  if (row.action === 'ticket_comment_added' || row.action === 'comment_added') return 'Se agregó un comentario al ticket.';
+  const text = auditSummaryText[language];
+  if (row.action === 'ticket_created') return text.ticketCreated;
+  if (row.action === 'ticket_comment_added' || row.action === 'comment_added') return text.commentAdded;
 
   const oldData = row.oldData || {};
   const newData = row.newData || {};
   const changedFields = Object.keys(newData);
 
-  if (!changedFields.length) return 'Se registró una acción sin cambios de datos asociados.';
+  if (!changedFields.length) return text.noDataChanges;
 
   return changedFields.map((field) => {
     const oldValue = oldData[field];
     const newValue = newData[field];
     const readableField = translateField(field, language);
     if (oldValue === undefined || oldValue === null || oldValue === '') {
-      return `Se registró ${readableField} como ${translateValue(newValue, language)}.`;
+      return `${text.registeredAs} ${readableField} ${text.as} ${translateValue(newValue, language)}.`;
     }
-    return `Se cambió ${readableField} de ${translateValue(oldValue, language)} a ${translateValue(newValue, language)}.`;
+    return `${text.changedFrom} ${readableField} ${text.from} ${translateValue(oldValue, language)} ${text.to} ${translateValue(newValue, language)}.`;
   }).join(' ');
 }
 
@@ -194,7 +218,7 @@ function ActionBadge({ action, language }: { action: string; language: Language 
 }
 
 export function AuditPage() {
-  const { locale, language } = useLanguage();
+  const { locale, language, t } = useLanguage();
   const [search, setSearch] = useState('');
   const [entity, setEntity] = useState('');
 
@@ -212,11 +236,11 @@ export function AuditPage() {
   });
 
   const columns: Column<AuditLog>[] = [
-    { header: 'Fecha', accessor: (row) => new Date(row.createdAt).toLocaleString(locale) },
-    { header: 'Usuario', accessor: (row) => row.user?.name || '-' },
-    { header: 'Acción', accessor: (row) => <ActionBadge action={row.action} language={language} /> },
-    { header: 'Entidad', accessor: (row) => `${translateEntity(row.entity, language)}${row.entityId ? ` #${row.entityId}` : ''}` },
-    { header: 'Resumen', accessor: (row) => <span className="text-slate-600 dark:text-slate-300">{buildAuditSummary(row, language)}</span> },
+    { header: t('date'), accessor: (row) => new Date(row.createdAt).toLocaleString(locale) },
+    { header: t('user'), accessor: (row) => row.user?.name || '-' },
+    { header: t('action'), accessor: (row) => <ActionBadge action={row.action} language={language} /> },
+    { header: t('entity'), accessor: (row) => `${translateEntity(row.entity, language)}${row.entityId ? ` #${row.entityId}` : ''}` },
+    { header: t('summary'), accessor: (row) => <span className="text-slate-600 dark:text-slate-300">{buildAuditSummary(row, language)}</span> },
     { header: 'IP', accessor: (row) => row.ipAddress || '-' },
   ];
 
@@ -226,49 +250,49 @@ export function AuditPage() {
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold text-primary-900 dark:text-white">
             <ShieldCheck className="h-6 w-6 text-brand-600" />
-            Auditoría
+            {t('audit')}
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Registro inalterable de acciones, usuarios, IP y datos modificados.
+            {t('auditDescription')}
           </p>
         </div>
         <button onClick={refetch} className="btn-secondary gap-2">
           <RefreshCw className="h-4 w-4" />
-          Actualizar
+          {t('refresh')}
         </button>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="w-72">
-          <SearchInput value={search} onChange={setSearch} placeholder="Buscar acción, entidad o IP..." />
+          <SearchInput value={search} onChange={setSearch} placeholder={t('searchAudit')} />
         </div>
         <select value={entity} onChange={(event) => setEntity(event.target.value)} className="input w-44">
-          <option value="">Todas las entidades</option>
+          <option value="">{t('allEntities')}</option>
           <option value="ticket">Tickets</option>
         </select>
       </div>
 
       <section className="grid gap-4 md:grid-cols-3">
         <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <p className="text-xs font-medium uppercase text-slate-500">Registros visibles</p>
+          <p className="text-xs font-medium uppercase text-slate-500">{t('visibleRecords')}</p>
           <p className="mt-2 text-2xl font-bold text-primary-900 dark:text-white">{data.length}</p>
         </div>
         <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <p className="text-xs font-medium uppercase text-slate-500">Entidad filtrada</p>
-          <p className="mt-2 text-lg font-semibold text-primary-900 dark:text-white">{entity ? translateEntity(entity, language) : 'Todas'}</p>
+          <p className="text-xs font-medium uppercase text-slate-500">{t('filteredEntity')}</p>
+          <p className="mt-2 text-lg font-semibold text-primary-900 dark:text-white">{entity ? translateEntity(entity, language) : t('allFem')}</p>
         </div>
         <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-          <p className="text-xs font-medium uppercase text-slate-500">Lectura</p>
-          <p className="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">Acciones traducidas y resumidas</p>
+          <p className="text-xs font-medium uppercase text-slate-500">{t('reading')}</p>
+          <p className="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">{t('translatedActions')}</p>
         </div>
       </section>
 
-      <DataTable columns={columns} data={data} isLoading={isLoading} emptyMessage="No hay registros de auditoría" />
+      <DataTable columns={columns} data={data} isLoading={isLoading} emptyMessage={t('noAuditRecords')} />
 
       <section className="space-y-3">
         <div className="flex items-center gap-2 text-sm font-semibold text-primary-900 dark:text-white">
           <FileClock className="h-4 w-4 text-brand-600" />
-          Detalle de auditoría
+          {t('auditDetail')}
         </div>
         <div className="grid gap-3">
           {data.map((row) => (
@@ -285,15 +309,15 @@ export function AuditPage() {
               <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{buildAuditSummary(row, language)}</p>
               <div className="mt-3 grid gap-3 text-xs md:grid-cols-3">
                 <div className="rounded-md bg-slate-50 p-3 dark:bg-slate-800/70">
-                  <p className="font-semibold text-slate-500">Usuario</p>
+                  <p className="font-semibold text-slate-500">{t('user')}</p>
                   <p className="mt-1 text-slate-700 dark:text-slate-200">{row.user?.name || '-'}</p>
                 </div>
                 <div className="rounded-md bg-slate-50 p-3 dark:bg-slate-800/70">
-                  <p className="font-semibold text-slate-500">Datos anteriores</p>
+                  <p className="font-semibold text-slate-500">{t('previousData')}</p>
                   <p className="mt-1 break-words text-slate-700 dark:text-slate-200">{compactJson(row.oldData, language)}</p>
                 </div>
                 <div className="rounded-md bg-slate-50 p-3 dark:bg-slate-800/70">
-                  <p className="font-semibold text-slate-500">Datos nuevos</p>
+                  <p className="font-semibold text-slate-500">{t('newData')}</p>
                   <p className="mt-1 break-words text-slate-700 dark:text-slate-200">{compactJson(row.newData, language)}</p>
                 </div>
               </div>

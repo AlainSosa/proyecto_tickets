@@ -92,7 +92,7 @@ export function UsersPage() {
 }
 
 function UserFormModal({ isOpen, onClose, user, onSave, onDelete }: { isOpen: boolean; onClose: () => void; user: User | null; onSave: (data: any) => void; onDelete?: () => void }) {
-  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'user', area: DEFAULT_INSTITUTIONAL_AREA as InstitutionalArea });
+  const [form, setForm] = useState({ name: '', email: '', password: '', role: 'user', area: DEFAULT_INSTITUTIONAL_AREA as InstitutionalArea, isActive: true });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { t } = useLanguage();
   useEffect(() => {
@@ -103,16 +103,17 @@ function UserFormModal({ isOpen, onClose, user, onSave, onDelete }: { isOpen: bo
         password: '',
         role: user.role,
         area: user.area || DEFAULT_INSTITUTIONAL_AREA,
-      } : { name: '', email: '', password: '', role: 'user', area: DEFAULT_INSTITUTIONAL_AREA });
+        isActive: user.isActive,
+      } : { name: '', email: '', password: '', role: 'user', area: DEFAULT_INSTITUTIONAL_AREA, isActive: true });
     }
   }, [isOpen, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setIsSubmitting(true);
-    const data: any = { name: form.name, email: form.email, role: form.role, area: form.area };
+    const data: any = { name: form.name, email: form.email, role: form.role, area: form.area, isActive: form.isActive };
     if (form.password) data.password = form.password;
     await onSave(data); setIsSubmitting(false);
-    setForm({ name: '', email: '', password: '', role: 'user', area: DEFAULT_INSTITUTIONAL_AREA });
+    setForm({ name: '', email: '', password: '', role: 'user', area: DEFAULT_INSTITUTIONAL_AREA, isActive: true });
   };
 
   return (
@@ -125,6 +126,21 @@ function UserFormModal({ isOpen, onClose, user, onSave, onDelete }: { isOpen: bo
         <div>
           <label className="mb-1 block text-sm font-medium">{t('location')}</label>
           <AreaSelect value={form.area} onChange={(area) => setForm({ ...form, area: area as InstitutionalArea })} required />
+        </div>
+        <div className="flex items-center justify-between rounded-md border border-slate-200 px-4 py-3 dark:border-slate-700">
+          <div>
+            <p className="text-sm font-medium">{t('enabled')}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{form.isActive ? t('yes') : t('no')}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setForm({ ...form, isActive: !form.isActive })}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.isActive ? 'bg-green-600' : 'bg-slate-300 dark:bg-slate-700'}`}
+            aria-pressed={form.isActive}
+            aria-label={t('enabled')}
+          >
+            <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${form.isActive ? 'translate-x-5' : 'translate-x-1'}`} />
+          </button>
         </div>
         <div className="flex justify-between pt-4">
           <div>{user && onDelete && <button type="button" onClick={onDelete} className="btn-danger">{t('delete')}</button>}</div>

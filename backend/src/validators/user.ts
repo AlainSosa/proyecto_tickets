@@ -9,6 +9,7 @@ const baseUserSchema = z.object({
   password: z.string().min(6),
   role: z.enum(['admin', 'technician', 'user']),
   area: z.enum(INSTITUTIONAL_AREAS),
+  isActive: z.boolean().optional(),
 });
 
 const updateUserSchema = baseUserSchema.partial().extend({

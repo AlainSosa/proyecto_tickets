@@ -34,7 +34,7 @@ import {
   QuickReportColumn,
   ReportPreviewStyles,
 } from '../../components/ui/QuickReportButton';
-import { useLanguage } from '../../context/LanguageContext';
+import { Language, useLanguage } from '../../context/LanguageContext';
 import { useAuth } from '../../context/AuthContext';
 
 interface ReportData {
@@ -99,13 +99,13 @@ function getReportRange(period: ReportPeriod, value: string) {
   };
 }
 
-function getPeriodLabel(period: ReportPeriod, value: string) {
-  if (period === 'day') return new Date(`${value}T00:00:00`).toLocaleDateString('es-ES', { dateStyle: 'long' });
+function getPeriodLabel(period: ReportPeriod, value: string, locale: string, language: Language) {
+  if (period === 'day') return new Date(`${value}T00:00:00`).toLocaleDateString(locale, { dateStyle: 'long' });
   if (period === 'month') {
     const [year, month] = value.split('-').map(Number);
-    return new Date(year, month - 1, 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+    return new Date(year, month - 1, 1).toLocaleDateString(locale, { month: 'long', year: 'numeric' });
   }
-  return `Año ${value}`;
+  return language === 'pt' ? `Ano ${value}` : `Año ${value}`;
 }
 
 function buildMetrics(metrics: Array<[string, number | string]>) {
@@ -114,14 +114,18 @@ function buildMetrics(metrics: Array<[string, number | string]>) {
     .join('')}</section>`;
 }
 
-function buildIntro(periodLabel: string, purpose: string, findings: string[]) {
+function buildIntro(periodLabel: string, purpose: string, findings: string[], language: Language) {
+  const labels = language === 'pt'
+    ? { period: 'Período analisado', purpose: 'Objetivo', reading: 'Leitura executiva' }
+    : { period: 'Periodo analizado', purpose: 'Objetivo', reading: 'Lectura ejecutiva' };
+
   return `
     <section class="report-context">
-      <p><strong>Periodo analizado:</strong> ${escapeHtml(periodLabel)}</p>
-      <p><strong>Objetivo:</strong> ${escapeHtml(purpose)}</p>
+      <p><strong>${labels.period}:</strong> ${escapeHtml(periodLabel)}</p>
+      <p><strong>${labels.purpose}:</strong> ${escapeHtml(purpose)}</p>
     </section>
     <section class="report-findings">
-      <h2>Lectura ejecutiva</h2>
+      <h2>${labels.reading}</h2>
       <ul>${findings.map((finding) => `<li>${escapeHtml(finding)}</li>`).join('')}</ul>
     </section>
   `;
@@ -132,17 +136,23 @@ function compactJson(value: Record<string, unknown> | null) {
   return Object.entries(value).map(([key, item]) => `${key}: ${String(item)}`).join(' | ');
 }
 
-function auditActionLabel(action: string) {
-  const labels: Record<string, string> = {
-    ticket_created: 'Ticket creado',
-    ticket_updated: 'Ticket actualizado',
-    ticket_comment_added: 'Comentario agregado',
-  };
+function auditActionLabel(action: string, language: Language) {
+  const labels: Record<string, string> = language === 'pt'
+    ? {
+      ticket_created: 'Ticket criado',
+      ticket_updated: 'Ticket atualizado',
+      ticket_comment_added: 'Comentário adicionado',
+    }
+    : {
+      ticket_created: 'Ticket creado',
+      ticket_updated: 'Ticket actualizado',
+      ticket_comment_added: 'Comentario agregado',
+    };
   return labels[action] || action.replace(/_/g, ' ');
 }
 
 export function ReportsPage() {
-  const { t, locale } = useLanguage();
+  const { t, locale, language } = useLanguage();
   const { user } = useAuth();
   const [data, setData] = useState<ReportData>(emptyData);
   const [isLoading, setIsLoading] = useState(true);
@@ -161,53 +171,156 @@ export function ReportsPage() {
     { header: t('created'), value: (item) => new Date(item.createdAt).toLocaleDateString(locale) },
   ], [locale, t]);
 
+  const text = useMemo(() => language === 'pt' ? {
+    institutionalInfo: 'Informação institucional',
+    reportsIntro: 'Relatórios orientados a decisões, acompanhamento do suporte e prestação de contas.',
+    periodType: 'Tipo de período',
+    analyzedPeriod: 'Período analisado',
+    day: 'Dia',
+    month: 'Mês',
+    year: 'Ano',
+    analyzePeriod: 'Analisar período',
+    loadError: 'Não foi possível carregar os dados do período selecionado.',
+    selectReport: 'Selecione o relatório necessário',
+    selectReportHelp: 'Cada relatório responde a uma necessidade diferente de gestão.',
+    generateReport: 'Gerar relatório',
+    periodSummary: 'Resumo do período',
+    periodSummaryHelp: 'Indicadores principais antes de gerar um relatório.',
+    quantity: 'Quantidade',
+    period: 'Período',
+    category: 'Categoria',
+    institutionalArea: 'Área institucional',
+    compliance: 'Cumprimento',
+    resolutionAverage: 'Média de resolução',
+    code: 'Código',
+    equipment: 'Equipamento',
+    register: 'Registro',
+    change: 'Alteração',
+    operationalReport: 'Relatório operacional de suporte técnico',
+    performanceReport: 'Relatório de desempenho técnico',
+    riskReport: 'Relatório de riscos e pendências',
+    traceabilityReport: 'Relatório de rastreabilidade e auditoria',
+    operationTitle: 'Operação do suporte',
+    operationDescription: 'Demanda, estados, áreas e categorias para explicar que trabalho a equipe recebeu e como avançou.',
+    operationDetail: 'Ajuda a avaliar volume e situação geral.',
+    performanceTitle: 'Desempenho técnico',
+    performanceDescription: 'Carga atribuída, tickets finalizados e tempo médio de resolução por técnico.',
+    performanceDetail: 'Ajuda a comparar capacidade e resultados.',
+    riskTitle: 'Riscos e pendências',
+    riskDescription: 'Casos críticos, tickets sem atribuição, equipamentos em manutenção e rede inativa.',
+    riskDetail: 'Ajuda a priorizar ações imediatas.',
+    traceabilityTitle: 'Rastreabilidade e auditoria',
+    traceabilityDescription: 'Registro real de ações, usuários, datas, IP e valores modificados.',
+    traceabilityDetail: 'Ajuda a demonstrar controle e responsabilidade.',
+    registeredTickets: 'Tickets registrados',
+    completionRate: 'Taxa de finalização',
+    highOrCritical: 'Alta ou crítica',
+    unassignedPending: 'Pendentes sem atribuição',
+    noTechnicalActivity: 'Não há atividade técnica para comparar.',
+  } : {
+    institutionalInfo: 'Información institucional',
+    reportsIntro: 'Informes orientados a decisiones, seguimiento del soporte y rendición de cuentas.',
+    periodType: 'Tipo de periodo',
+    analyzedPeriod: 'Periodo analizado',
+    day: 'Día',
+    month: 'Mes',
+    year: 'Año',
+    analyzePeriod: 'Analizar periodo',
+    loadError: 'No se pudieron cargar los datos del periodo seleccionado.',
+    selectReport: 'Seleccione el informe que necesita',
+    selectReportHelp: 'Cada informe responde a una necesidad distinta de gestión.',
+    generateReport: 'Generar informe',
+    periodSummary: 'Resumen del periodo',
+    periodSummaryHelp: 'Indicadores clave antes de generar un informe.',
+    quantity: 'Cantidad',
+    period: 'Periodo',
+    category: 'Categoría',
+    institutionalArea: 'Área institucional',
+    compliance: 'Cumplimiento',
+    resolutionAverage: 'Promedio de resolución',
+    code: 'Código',
+    equipment: 'Equipo',
+    register: 'Registro',
+    change: 'Cambio',
+    operationalReport: 'Informe operativo de soporte técnico',
+    performanceReport: 'Informe de desempeño técnico',
+    riskReport: 'Informe de riesgos y pendientes',
+    traceabilityReport: 'Informe de trazabilidad y auditoría',
+    operationTitle: 'Operación del soporte',
+    operationDescription: 'Demanda, estados, áreas y categorías para explicar qué trabajo recibió el equipo y cómo avanzó.',
+    operationDetail: 'Ayuda a evaluar volumen y situación general.',
+    performanceTitle: 'Desempeño técnico',
+    performanceDescription: 'Carga asignada, tickets finalizados y tiempo promedio de resolución por técnico.',
+    performanceDetail: 'Ayuda a comparar capacidad y resultados.',
+    riskTitle: 'Riesgos y pendientes',
+    riskDescription: 'Casos críticos, tickets sin asignar, equipos en mantenimiento y red inactiva.',
+    riskDetail: 'Ayuda a priorizar acciones inmediatas.',
+    traceabilityTitle: 'Trazabilidad y auditoría',
+    traceabilityDescription: 'Registro real de acciones, usuarios, fechas, IP y valores modificados.',
+    traceabilityDetail: 'Ayuda a demostrar control y responsabilidad.',
+    registeredTickets: 'Tickets registrados',
+    completionRate: 'Tasa de finalización',
+    highOrCritical: 'Alta o crítica',
+    unassignedPending: 'Pendientes sin asignar',
+    noTechnicalActivity: 'No hay actividad técnica para comparar.',
+  }, [language]);
+
+  const reportOptions = useMemo(() => ({
+    emptyMessage: t('noReportData'),
+    systemName: t('reportSystemName'),
+    generatedAtLabel: language === 'pt' ? 'Gerado em' : 'Generado el',
+    generatedByLabel: t('generatedBy'),
+    printSavePdfLabel: t('printSavePdf'),
+    lang: language === 'pt' ? 'pt-BR' : 'es',
+  }), [language, t]);
+
   const statusColumns = useMemo<QuickReportColumn<DashboardStatusDatum>[]>(() => [
-    { header: 'Estado', value: (item) => t(statusLabelKeys[item.status]) },
-    { header: 'Cantidad', value: (item) => item.value },
-  ], [t]);
+    { header: t('status'), value: (item) => t(statusLabelKeys[item.status]) },
+    { header: text.quantity, value: (item) => item.value },
+  ], [t, text.quantity]);
 
   const monthColumns: QuickReportColumn<DashboardMonthDatum>[] = [
-    { header: 'Periodo', value: (item) => item.label },
-    { header: 'Cantidad', value: (item) => item.value },
+    { header: text.period, value: (item) => item.label },
+    { header: text.quantity, value: (item) => item.value },
   ];
   const categoryColumns: QuickReportColumn<DashboardCategoryDatum>[] = [
-    { header: 'Categoría', value: (item) => item.category },
+    { header: text.category, value: (item) => item.category },
     { header: 'Tickets', value: (item) => item.value },
   ];
   const areaColumns: QuickReportColumn<DashboardAreaDatum>[] = [
-    { header: 'Área institucional', value: (item) => item.area },
+    { header: text.institutionalArea, value: (item) => item.area },
     { header: 'Tickets', value: (item) => item.value },
   ];
   const technicianColumns: QuickReportColumn<DashboardTechnicianMetric>[] = [
-    { header: 'Técnico', value: (item) => item.technicianName },
-    { header: 'Asignados', value: (item) => item.assignedTickets },
-    { header: 'Finalizados', value: (item) => item.resolvedTickets },
-    { header: 'Cumplimiento', value: (item) => item.assignedTickets ? `${Math.round((item.resolvedTickets / item.assignedTickets) * 100)}%` : '0%' },
-    { header: 'Promedio de resolución', value: (item) => `${item.averageResolutionHours} h` },
+    { header: t('technician'), value: (item) => item.technicianName },
+    { header: t('assigned'), value: (item) => item.assignedTickets },
+    { header: t('finalized'), value: (item) => item.resolvedTickets },
+    { header: text.compliance, value: (item) => item.assignedTickets ? `${Math.round((item.resolvedTickets / item.assignedTickets) * 100)}%` : '0%' },
+    { header: text.resolutionAverage, value: (item) => `${item.averageResolutionHours} h` },
   ];
   const priorityColumns: QuickReportColumn<{ priority: TicketPriority; value: number }>[] = [
-    { header: 'Prioridad', value: (item) => priorityLabels[item.priority] },
+    { header: t('priority'), value: (item) => t(priorityLabelKeys[item.priority]) },
     { header: 'Tickets', value: (item) => item.value },
   ];
   const assetColumns: QuickReportColumn<Asset>[] = [
-    { header: 'Código', value: (item) => item.internalCode },
-    { header: 'Equipo', value: (item) => `${item.brand} ${item.model}` },
-    { header: 'Ubicación', value: (item) => item.location || '-' },
-    { header: 'Observaciones', value: (item) => item.observations || '-' },
+    { header: text.code, value: (item) => item.internalCode },
+    { header: text.equipment, value: (item) => `${item.brand} ${item.model}` },
+    { header: t('location'), value: (item) => item.location || '-' },
+    { header: t('observations'), value: (item) => item.observations || '-' },
   ];
   const networkColumns: QuickReportColumn<NetworkPoint>[] = [
-    { header: 'Punto', value: (item) => item.label },
-    { header: 'Ubicación', value: (item) => item.location },
+    { header: t('label'), value: (item) => item.label },
+    { header: t('location'), value: (item) => item.location },
     { header: 'Patch panel', value: (item) => item.patchPanel || '-' },
-    { header: 'Puerto', value: (item) => item.switchPort || '-' },
+    { header: t('switchPort'), value: (item) => item.switchPort || '-' },
   ];
   const auditColumns: QuickReportColumn<AuditLog>[] = [
-    { header: 'Fecha y hora', value: (item) => new Date(item.createdAt).toLocaleString(locale) },
-    { header: 'Usuario', value: (item) => item.user?.name || '-' },
-    { header: 'Acción', value: (item) => auditActionLabel(item.action) },
-    { header: 'Registro', value: (item) => `${item.entity}${item.entityId ? ` #${item.entityId}` : ''}` },
+    { header: t('date'), value: (item) => new Date(item.createdAt).toLocaleString(locale) },
+    { header: t('user'), value: (item) => item.user?.name || '-' },
+    { header: t('action'), value: (item) => auditActionLabel(item.action, language) },
+    { header: text.register, value: (item) => `${item.entity}${item.entityId ? ` #${item.entityId}` : ''}` },
     { header: 'IP', value: (item) => item.ipAddress || '-' },
-    { header: 'Cambio', value: (item) => `${compactJson(item.oldData)} → ${compactJson(item.newData)}` },
+    { header: text.change, value: (item) => `${compactJson(item.oldData)} -> ${compactJson(item.newData)}` },
   ];
 
   const loadReports = async () => {
@@ -262,7 +375,7 @@ export function ReportsPage() {
         auditLogs: auditResponse.data?.data || [],
       });
     } catch {
-      setError('No se pudieron cargar los datos del periodo seleccionado.');
+      setError(text.loadError);
     } finally {
       setIsLoading(false);
     }
@@ -280,7 +393,7 @@ export function ReportsPage() {
   };
 
   const summary = data.summary;
-  const periodLabel = getPeriodLabel(period, periodValue);
+  const periodLabel = getPeriodLabel(period, periodValue, locale, language);
   const completionRate = summary?.totalTickets ? Math.round((summary.resolvedTickets / summary.totalTickets) * 100) : 0;
   const unassigned = summary ? Math.max(0, summary.pendingTickets - summary.assignedTickets) : 0;
   const topArea = [...data.ticketsByArea].sort((a, b) => b.value - a.value)[0];
@@ -291,132 +404,132 @@ export function ReportsPage() {
   }));
 
   const generateOperationsReport = () => setPreview({
-    title: 'Informe operativo de soporte técnico',
+    title: text.operationalReport,
     body: `
-      ${buildIntro(periodLabel, 'Evaluar la demanda recibida y el avance general del servicio de soporte.', [
-        `Se registraron ${summary?.totalTickets || 0} tickets y se finalizó el ${completionRate}% del total.`,
-        `${summary?.pendingTickets || 0} casos permanecen pendientes y ${summary?.inProgressTickets || 0} están en proceso.`,
-        topCategory ? `La categoría con mayor demanda fue ${topCategory.category}, con ${topCategory.value} tickets.` : 'No se registraron categorías con demanda.',
-        topArea ? `El área con más solicitudes fue ${topArea.area}, con ${topArea.value} tickets.` : 'No se registraron solicitudes por área.',
-      ])}
+      ${buildIntro(periodLabel, language === 'pt' ? 'Avaliar a demanda recebida e o avanço geral do serviço de suporte.' : 'Evaluar la demanda recibida y el avance general del servicio de soporte.', [
+        language === 'pt' ? `Foram registrados ${summary?.totalTickets || 0} tickets e ${completionRate}% do total foi finalizado.` : `Se registraron ${summary?.totalTickets || 0} tickets y se finalizó el ${completionRate}% del total.`,
+        language === 'pt' ? `${summary?.pendingTickets || 0} casos permanecem pendentes e ${summary?.inProgressTickets || 0} estão em processo.` : `${summary?.pendingTickets || 0} casos permanecen pendientes y ${summary?.inProgressTickets || 0} están en proceso.`,
+        topCategory ? (language === 'pt' ? `A categoria com maior demanda foi ${topCategory.category}, com ${topCategory.value} tickets.` : `La categoría con mayor demanda fue ${topCategory.category}, con ${topCategory.value} tickets.`) : (language === 'pt' ? 'Não foram registradas categorias com demanda.' : 'No se registraron categorías con demanda.'),
+        topArea ? (language === 'pt' ? `A área com mais solicitações foi ${topArea.area}, com ${topArea.value} tickets.` : `El área con más solicitudes fue ${topArea.area}, con ${topArea.value} tickets.`) : (language === 'pt' ? 'Não foram registradas solicitações por área.' : 'No se registraron solicitudes por área.'),
+      ], language)}
       ${buildMetrics([
-        ['Tickets registrados', summary?.totalTickets || 0],
-        ['Pendientes', summary?.pendingTickets || 0],
-        ['En proceso', summary?.inProgressTickets || 0],
-        ['Finalizados', summary?.resolvedTickets || 0],
-        ['Tasa de finalización', `${completionRate}%`],
-        ['Sin técnico asignado', unassigned],
+        [text.registeredTickets, summary?.totalTickets || 0],
+        [t('pending'), summary?.pendingTickets || 0],
+        [t('inProgress'), summary?.inProgressTickets || 0],
+        [t('finalized'), summary?.resolvedTickets || 0],
+        [text.completionRate, `${completionRate}%`],
+        [t('withoutAssignment'), unassigned],
       ])}
-      <h2>Distribución por estado</h2>${buildReportTable(data.ticketsByStatus, statusColumns)}
-      <h2>Demanda por categoría</h2>${buildReportTable(data.ticketsByCategory, categoryColumns)}
-      <h2>Demanda por área institucional</h2>${buildReportTable(data.ticketsByArea, areaColumns)}
-      <h2>Tickets registrados en el periodo</h2>${buildReportTable(data.recentTickets, ticketColumns)}
+      <h2>${language === 'pt' ? 'Distribuição por estado' : 'Distribución por estado'}</h2>${buildReportTable(data.ticketsByStatus, statusColumns, reportOptions)}
+      <h2>${language === 'pt' ? 'Demanda por categoria' : 'Demanda por categoría'}</h2>${buildReportTable(data.ticketsByCategory, categoryColumns, reportOptions)}
+      <h2>${language === 'pt' ? 'Demanda por área institucional' : 'Demanda por área institucional'}</h2>${buildReportTable(data.ticketsByArea, areaColumns, reportOptions)}
+      <h2>${language === 'pt' ? 'Tickets registrados no período' : 'Tickets registrados en el periodo'}</h2>${buildReportTable(data.recentTickets, ticketColumns, reportOptions)}
     `,
   });
 
   const generatePerformanceReport = () => {
     const leader = [...data.technicianMetrics].sort((a, b) => b.resolvedTickets - a.resolvedTickets)[0];
     setPreview({
-      title: 'Informe de desempeño técnico',
+      title: text.performanceReport,
       body: `
-        ${buildIntro(periodLabel, 'Analizar la carga de trabajo, resultados y tiempos de resolución del equipo técnico.', [
-          `${data.technicianMetrics.length} técnicos presentan actividad registrada en el sistema.`,
-          leader ? `${leader.technicianName} registra la mayor cantidad de casos finalizados: ${leader.resolvedTickets}.` : 'No hay actividad técnica para comparar.',
-          `Durante el periodo se finalizaron ${summary?.resolvedTickets || 0} tickets.`,
-        ])}
+        ${buildIntro(periodLabel, language === 'pt' ? 'Analisar a carga de trabalho, resultados e tempos de resolução da equipe técnica.' : 'Analizar la carga de trabajo, resultados y tiempos de resolución del equipo técnico.', [
+          language === 'pt' ? `${data.technicianMetrics.length} técnicos apresentam atividade registrada no sistema.` : `${data.technicianMetrics.length} técnicos presentan actividad registrada en el sistema.`,
+          leader ? (language === 'pt' ? `${leader.technicianName} registra a maior quantidade de casos finalizados: ${leader.resolvedTickets}.` : `${leader.technicianName} registra la mayor cantidad de casos finalizados: ${leader.resolvedTickets}.`) : text.noTechnicalActivity,
+          language === 'pt' ? `Durante o período foram finalizados ${summary?.resolvedTickets || 0} tickets.` : `Durante el periodo se finalizaron ${summary?.resolvedTickets || 0} tickets.`,
+        ], language)}
         ${buildMetrics([
-          ['Técnicos evaluados', data.technicianMetrics.length],
-          ['Tickets asignados', data.technicianMetrics.reduce((sum, item) => sum + item.assignedTickets, 0)],
-          ['Tickets finalizados', data.technicianMetrics.reduce((sum, item) => sum + item.resolvedTickets, 0)],
-          ['Finalización general', `${completionRate}%`],
+          [language === 'pt' ? 'Técnicos avaliados' : 'Técnicos evaluados', data.technicianMetrics.length],
+          [language === 'pt' ? 'Tickets atribuídos' : 'Tickets asignados', data.technicianMetrics.reduce((sum, item) => sum + item.assignedTickets, 0)],
+          [language === 'pt' ? 'Tickets finalizados' : 'Tickets finalizados', data.technicianMetrics.reduce((sum, item) => sum + item.resolvedTickets, 0)],
+          [language === 'pt' ? 'Finalização geral' : 'Finalización general', `${completionRate}%`],
         ])}
-        <h2>Rendimiento por técnico</h2>${buildReportTable(data.technicianMetrics, technicianColumns)}
-        <h2>Tendencia de finalización</h2>${buildReportTable(data.resolutionTrend, monthColumns)}
+        <h2>${language === 'pt' ? 'Desempenho por técnico' : 'Rendimiento por técnico'}</h2>${buildReportTable(data.technicianMetrics, technicianColumns, reportOptions)}
+        <h2>${language === 'pt' ? 'Tendência de finalização' : 'Tendencia de finalización'}</h2>${buildReportTable(data.resolutionTrend, monthColumns, reportOptions)}
       `,
     });
   };
 
   const generateRiskReport = () => setPreview({
-    title: 'Informe de riesgos y pendientes',
+    title: text.riskReport,
     body: `
-      ${buildIntro(periodLabel, 'Identificar situaciones que requieren intervención administrativa o técnica prioritaria.', [
-        `${summary?.criticalTickets || 0} tickets de prioridad alta o crítica requieren seguimiento.`,
-        `${unassigned} tickets pendientes todavía no tienen técnico responsable.`,
-        `${data.maintenanceAssets.length} activos están en mantenimiento y ${data.inactiveNetworkPoints.length} puntos de red presentan inactividad.`,
-      ])}
+      ${buildIntro(periodLabel, language === 'pt' ? 'Identificar situações que requerem intervenção administrativa ou técnica prioritária.' : 'Identificar situaciones que requieren intervención administrativa o técnica prioritaria.', [
+        language === 'pt' ? `${summary?.criticalTickets || 0} tickets de prioridade alta ou crítica requerem acompanhamento.` : `${summary?.criticalTickets || 0} tickets de prioridad alta o crítica requieren seguimiento.`,
+        language === 'pt' ? `${unassigned} tickets pendentes ainda não têm técnico responsável.` : `${unassigned} tickets pendientes todavía no tienen técnico responsable.`,
+        language === 'pt' ? `${data.maintenanceAssets.length} ativos estão em manutenção e ${data.inactiveNetworkPoints.length} pontos de rede apresentam inatividade.` : `${data.maintenanceAssets.length} activos están en mantenimiento y ${data.inactiveNetworkPoints.length} puntos de red presentan inactividad.`,
+      ], language)}
       ${buildMetrics([
-        ['Alta o crítica', summary?.criticalTickets || 0],
-        ['Pendientes sin asignar', unassigned],
-        ['Activos en mantenimiento', data.maintenanceAssets.length],
-        ['Puntos de red inactivos', data.inactiveNetworkPoints.length],
+        [text.highOrCritical, summary?.criticalTickets || 0],
+        [text.unassignedPending, unassigned],
+        [language === 'pt' ? 'Ativos em manutenção' : 'Activos en mantenimiento', data.maintenanceAssets.length],
+        [language === 'pt' ? 'Pontos de rede inativos' : 'Puntos de red inactivos', data.inactiveNetworkPoints.length],
       ])}
-      <h2>Distribución por prioridad</h2>${buildReportTable(priorityRows, priorityColumns)}
-      <h2>Tickets prioritarios pendientes</h2>${buildReportTable(data.criticalTickets, ticketColumns)}
-      <h2>Activos en mantenimiento</h2>${buildReportTable(data.maintenanceAssets, assetColumns)}
-      <h2>Puntos de red inactivos</h2>${buildReportTable(data.inactiveNetworkPoints, networkColumns)}
+      <h2>${language === 'pt' ? 'Distribuição por prioridade' : 'Distribución por prioridad'}</h2>${buildReportTable(priorityRows, priorityColumns, reportOptions)}
+      <h2>${language === 'pt' ? 'Tickets prioritários pendentes' : 'Tickets prioritarios pendientes'}</h2>${buildReportTable(data.criticalTickets, ticketColumns, reportOptions)}
+      <h2>${language === 'pt' ? 'Ativos em manutenção' : 'Activos en mantenimiento'}</h2>${buildReportTable(data.maintenanceAssets, assetColumns, reportOptions)}
+      <h2>${language === 'pt' ? 'Pontos de rede inativos' : 'Puntos de red inactivos'}</h2>${buildReportTable(data.inactiveNetworkPoints, networkColumns, reportOptions)}
     `,
   });
 
   const generateTraceabilityReport = () => setPreview({
-    title: 'Informe de trazabilidad y auditoría',
+    title: text.traceabilityReport,
     body: `
-      ${buildIntro(periodLabel, 'Documentar las acciones realizadas y los cambios registrados para control institucional.', [
-        `Se encontraron ${data.auditLogs.length} acciones auditadas durante el periodo.`,
-        'Cada registro identifica al usuario, fecha, dirección IP y valores modificados cuando corresponde.',
-        'La información se presenta en orden cronológico descendente para facilitar revisiones.',
-      ])}
+      ${buildIntro(periodLabel, language === 'pt' ? 'Documentar as ações realizadas e as alterações registradas para controle institucional.' : 'Documentar las acciones realizadas y los cambios registrados para control institucional.', [
+        language === 'pt' ? `Foram encontradas ${data.auditLogs.length} ações auditadas durante o período.` : `Se encontraron ${data.auditLogs.length} acciones auditadas durante el periodo.`,
+        language === 'pt' ? 'Cada registro identifica usuário, data, endereço IP e valores modificados quando corresponde.' : 'Cada registro identifica al usuario, fecha, dirección IP y valores modificados cuando corresponde.',
+        language === 'pt' ? 'A informação é apresentada em ordem cronológica descendente para facilitar revisões.' : 'La información se presenta en orden cronológico descendente para facilitar revisiones.',
+      ], language)}
       ${buildMetrics([
-        ['Acciones auditadas', data.auditLogs.length],
-        ['Usuarios participantes', new Set(data.auditLogs.map((item) => item.userId)).size],
-        ['Tickets con actividad', new Set(data.auditLogs.filter((item) => item.entity === 'ticket').map((item) => item.entityId)).size],
+        [language === 'pt' ? 'Ações auditadas' : 'Acciones auditadas', data.auditLogs.length],
+        [language === 'pt' ? 'Usuários participantes' : 'Usuarios participantes', new Set(data.auditLogs.map((item) => item.userId)).size],
+        [language === 'pt' ? 'Tickets com atividade' : 'Tickets con actividad', new Set(data.auditLogs.filter((item) => item.entity === 'ticket').map((item) => item.entityId)).size],
       ])}
-      <h2>Registro detallado de acciones</h2>${buildReportTable(data.auditLogs, auditColumns)}
+      <h2>${language === 'pt' ? 'Registro detalhado de ações' : 'Registro detallado de acciones'}</h2>${buildReportTable(data.auditLogs, auditColumns, reportOptions)}
     `,
   });
 
   const reports = [
     {
-      title: 'Operación del soporte',
-      description: 'Demanda, estados, áreas y categorías para explicar qué trabajo recibió el equipo y cómo avanzó.',
-      detail: 'Ayuda a evaluar volumen y situación general.',
+      title: text.operationTitle,
+      description: text.operationDescription,
+      detail: text.operationDetail,
       icon: Activity,
       tone: 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300',
       action: generateOperationsReport,
     },
     {
-      title: 'Desempeño técnico',
-      description: 'Carga asignada, tickets finalizados y tiempo promedio de resolución por técnico.',
-      detail: 'Ayuda a comparar capacidad y resultados.',
+      title: text.performanceTitle,
+      description: text.performanceDescription,
+      detail: text.performanceDetail,
       icon: Users,
       tone: 'bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-300',
       action: generatePerformanceReport,
     },
     {
-      title: 'Riesgos y pendientes',
-      description: 'Casos críticos, tickets sin asignar, equipos en mantenimiento y red inactiva.',
-      detail: 'Ayuda a priorizar acciones inmediatas.',
+      title: text.riskTitle,
+      description: text.riskDescription,
+      detail: text.riskDetail,
       icon: ShieldAlert,
       tone: 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300',
       action: generateRiskReport,
     },
     {
-      title: 'Trazabilidad y auditoría',
-      description: 'Registro real de acciones, usuarios, fechas, IP y valores modificados.',
-      detail: 'Ayuda a demostrar control y responsabilidad.',
+      title: text.traceabilityTitle,
+      description: text.traceabilityDescription,
+      detail: text.traceabilityDetail,
       icon: ScrollText,
       tone: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
       action: generateTraceabilityReport,
     },
-  ].filter((report) => report.title !== 'Trazabilidad y auditoría' || user?.role === 'admin');
+  ].filter((report) => report.title !== text.traceabilityTitle || user?.role === 'admin');
 
   return (
     <div className="space-y-7">
       <div className="flex flex-col gap-4 border-b border-slate-200 pb-5 dark:border-slate-800 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase text-brand-700 dark:text-brand-300">Información institucional</p>
+          <p className="text-xs font-semibold uppercase text-brand-700 dark:text-brand-300">{text.institutionalInfo}</p>
           <h1 className="mt-1 text-2xl font-bold">{t('reports')}</h1>
           <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600 dark:text-slate-400">
-            Informes orientados a decisiones, seguimiento del soporte y rendición de cuentas.
+            {text.reportsIntro}
           </p>
         </div>
         <button type="button" onClick={loadReports} className="btn-secondary gap-2" disabled={isLoading}>
@@ -428,22 +541,22 @@ export function ReportsPage() {
       <section className="card p-5">
         <div className="flex flex-wrap items-end gap-3">
           <div>
-            <label className="mb-1 block text-sm font-medium">Tipo de periodo</label>
+            <label className="mb-1 block text-sm font-medium">{text.periodType}</label>
             <select value={period} onChange={(event) => handlePeriodChange(event.target.value as ReportPeriod)} className="input w-40">
-              <option value="day">Día</option>
-              <option value="month">Mes</option>
-              <option value="year">Año</option>
+              <option value="day">{text.day}</option>
+              <option value="month">{text.month}</option>
+              <option value="year">{text.year}</option>
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium">Periodo analizado</label>
+            <label className="mb-1 block text-sm font-medium">{text.analyzedPeriod}</label>
             {period === 'day' && <input type="date" value={periodValue} onChange={(event) => setPeriodValue(event.target.value)} className="input w-44" />}
             {period === 'month' && <input type="month" value={periodValue} onChange={(event) => setPeriodValue(event.target.value)} className="input w-44" />}
             {period === 'year' && <input type="number" min="2000" max="2100" value={periodValue} onChange={(event) => setPeriodValue(event.target.value)} className="input w-32" />}
           </div>
           <button type="button" onClick={loadReports} className="btn-primary gap-2" disabled={isLoading || !periodValue}>
             <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Analizar periodo
+            {text.analyzePeriod}
           </button>
           <p className="pb-2 text-sm font-medium capitalize text-slate-500">{periodLabel}</p>
         </div>
@@ -452,8 +565,8 @@ export function ReportsPage() {
       {error && <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>}
 
       <section>
-        <h2 className="text-lg font-semibold text-primary-900 dark:text-white">Seleccione el informe que necesita</h2>
-        <p className="mt-1 text-sm text-slate-500">Cada informe responde a una necesidad distinta de gestión.</p>
+        <h2 className="text-lg font-semibold text-primary-900 dark:text-white">{text.selectReport}</h2>
+        <p className="mt-1 text-sm text-slate-500">{text.selectReportHelp}</p>
         <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {reports.map((report) => (
             <article key={report.title} className="card flex min-h-72 flex-col p-5">
@@ -465,7 +578,7 @@ export function ReportsPage() {
               <p className="mt-3 border-l-2 border-brand-500 pl-3 text-xs leading-5 text-slate-500">{report.detail}</p>
               <button type="button" onClick={report.action} disabled={isLoading} className="btn-primary mt-auto gap-2">
                 <FileText className="h-4 w-4" />
-                Generar informe
+                {text.generateReport}
               </button>
             </article>
           ))}
@@ -473,14 +586,14 @@ export function ReportsPage() {
       </section>
 
       <section className="card p-5">
-        <h2 className="text-lg font-semibold text-primary-900 dark:text-white">Resumen del periodo</h2>
-        <p className="mt-1 text-sm text-slate-500">Indicadores clave antes de generar un informe.</p>
+        <h2 className="text-lg font-semibold text-primary-900 dark:text-white">{text.periodSummary}</h2>
+        <p className="mt-1 text-sm text-slate-500">{text.periodSummaryHelp}</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[
-            ['Tickets registrados', summary?.totalTickets || 0],
-            ['Tasa de finalización', `${completionRate}%`],
-            ['Alta o crítica', summary?.criticalTickets || 0],
-            ['Pendientes sin asignar', unassigned],
+            [text.registeredTickets, summary?.totalTickets || 0],
+            [text.completionRate, `${completionRate}%`],
+            [text.highOrCritical, summary?.criticalTickets || 0],
+            [text.unassignedPending, unassigned],
           ].map(([label, value]) => (
             <div key={label} className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/60">
               <p className="text-2xl font-bold text-primary-700 dark:text-primary-300">{value}</p>
@@ -494,6 +607,7 @@ export function ReportsPage() {
         <ReportPreview
           title={preview.title}
           body={preview.body}
+          reportOptions={reportOptions}
           generatedBy={user ? `${user.name} (${user.email})` : undefined}
           onClose={() => setPreview(null)}
         />
@@ -505,16 +619,20 @@ export function ReportsPage() {
 function ReportPreview({
   title,
   body,
+  reportOptions,
   generatedBy,
   onClose,
 }: {
   title: string;
   body: string;
+  reportOptions: Parameters<typeof buildPrintableReportDocument>[3];
   generatedBy?: string;
   onClose: () => void;
 }) {
+  const { t } = useLanguage();
+
   const downloadReport = () => {
-    const blob = new Blob([buildPrintableReportDocument(title, body, generatedBy)], { type: 'text/html;charset=utf-8' });
+    const blob = new Blob([buildPrintableReportDocument(title, body, generatedBy, reportOptions)], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -530,19 +648,19 @@ function ReportPreview({
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-4">
         <div className="flex w-[210mm] max-w-full flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-lg dark:border-slate-700 dark:bg-slate-900">
           <div>
-            <p className="text-sm font-semibold text-slate-900 dark:text-white">Vista previa</p>
+            <p className="text-sm font-semibold text-slate-900 dark:text-white">{t('preview')}</p>
             <p className="text-xs text-slate-500">{title}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={downloadReport} className="btn-secondary gap-2">
               <Download className="h-4 w-4" />
-              Descargar reporte
+              {t('downloadReport')}
             </button>
-            <button type="button" onClick={() => openPrintableReport(title, body, generatedBy)} className="btn-primary gap-2">
+            <button type="button" onClick={() => openPrintableReport(title, body, generatedBy, reportOptions)} className="btn-primary gap-2">
               <Printer className="h-4 w-4" />
-              Imprimir / PDF
+              {t('printPdf')}
             </button>
-            <button type="button" onClick={onClose} className="btn-secondary p-2" title="Cerrar">
+            <button type="button" onClick={onClose} className="btn-secondary p-2" title={t('close')}>
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -550,7 +668,7 @@ function ReportPreview({
         <div className="mx-auto min-h-[297mm] w-[210mm] max-w-full overflow-hidden bg-white p-[18mm] text-slate-900 shadow-2xl">
           <ReportPreviewStyles />
           <div className="border-t-[6px] border-brand-600 pt-6">
-            <div dangerouslySetInnerHTML={{ __html: buildReportHeader(title, undefined, generatedBy) }} />
+            <div dangerouslySetInnerHTML={{ __html: buildReportHeader(title, undefined, generatedBy, reportOptions) }} />
             <div className="report-preview-content" dangerouslySetInnerHTML={{ __html: body }} />
           </div>
         </div>

@@ -1,16 +1,17 @@
 import { Asset, NetworkPoint, Ticket } from '../../../types';
+import { useLanguage } from '../../../context/LanguageContext';
 
-const statusLabels: Record<Ticket['status'], string> = {
-  pending: 'Pendiente',
-  in_progress: 'En proceso',
-  resolved: 'Finalizado',
+const statusLabelKeys: Record<Ticket['status'], 'pending' | 'inProgress' | 'finalized'> = {
+  pending: 'pending',
+  in_progress: 'inProgress',
+  resolved: 'finalized',
 };
 
-const priorityLabels: Record<NonNullable<Ticket['priority']>, string> = {
-  low: 'Baja',
-  medium: 'Media',
-  high: 'Alta',
-  critical: 'Crítica',
+const priorityLabelKeys: Record<NonNullable<Ticket['priority']>, 'low' | 'medium' | 'high' | 'critical'> = {
+  low: 'low',
+  medium: 'medium',
+  high: 'high',
+  critical: 'critical',
 };
 
 const statusBadge: Record<Ticket['status'], string> = {
@@ -48,24 +49,26 @@ function TableShell({ title, children }: { title: string; children: React.ReactN
 }
 
 export function RecentTicketsTable({ tickets }: { tickets: Ticket[] }) {
+  const { t } = useLanguage();
+
   return (
-    <TableShell title="Últimos tickets creados">
+    <TableShell title={t('recentRequests')}>
       <table className="min-w-[560px] w-full text-sm">
         <thead>
           <tr className="border-b text-left text-slate-500">
-            <th className="px-4 py-3">Título</th>
-            <th className="px-4 py-3">Estado</th>
-            <th className="px-4 py-3">Prioridad</th>
-            <th className="px-4 py-3">Solicitante</th>
+            <th className="px-4 py-3">{t('title')}</th>
+            <th className="px-4 py-3">{t('status')}</th>
+            <th className="px-4 py-3">{t('priority')}</th>
+            <th className="px-4 py-3">{t('requester')}</th>
           </tr>
         </thead>
         <tbody className="divide-y">
-          {tickets.length === 0 ? <EmptyRow colSpan={4} message="No hay tickets recientes." /> : tickets.map((ticket) => (
+          {tickets.length === 0 ? <EmptyRow colSpan={4} message={t('noTicketsFound')} /> : tickets.map((ticket) => (
             <tr key={ticket.id} className="hover:bg-brand-50/50 dark:hover:bg-slate-800/50">
               <td className="max-w-xs px-4 py-3 font-medium">{ticket.title}</td>
-              <td className="px-4 py-3"><span className={statusBadge[ticket.status]}>{statusLabels[ticket.status]}</span></td>
+              <td className="px-4 py-3"><span className={statusBadge[ticket.status]}>{t(statusLabelKeys[ticket.status])}</span></td>
               <td className="px-4 py-3">
-                {ticket.priority ? <span className={priorityBadge[ticket.priority]}>{priorityLabels[ticket.priority]}</span> : <span className="badge-gray">Por definir</span>}
+                {ticket.priority ? <span className={priorityBadge[ticket.priority]}>{t(priorityLabelKeys[ticket.priority])}</span> : <span className="badge-gray">{t('undefinedPriority')}</span>}
               </td>
               <td className="px-4 py-3">{ticket.requester?.name || '-'}</td>
             </tr>
@@ -77,26 +80,28 @@ export function RecentTicketsTable({ tickets }: { tickets: Ticket[] }) {
 }
 
 export function CriticalTicketsTable({ tickets }: { tickets: Ticket[] }) {
+  const { t } = useLanguage();
+
   return (
-    <TableShell title="Tickets críticos pendientes">
+    <TableShell title={`${t('critical')} ${t('pendingTickets').toLowerCase()}`}>
       <table className="min-w-[560px] w-full text-sm">
         <thead>
           <tr className="border-b text-left text-slate-500">
-            <th className="px-4 py-3">Título</th>
-            <th className="px-4 py-3">Prioridad</th>
-            <th className="px-4 py-3">Estado</th>
-            <th className="px-4 py-3">Técnico</th>
+            <th className="px-4 py-3">{t('title')}</th>
+            <th className="px-4 py-3">{t('priority')}</th>
+            <th className="px-4 py-3">{t('status')}</th>
+            <th className="px-4 py-3">{t('technician')}</th>
           </tr>
         </thead>
         <tbody className="divide-y">
-          {tickets.length === 0 ? <EmptyRow colSpan={4} message="No hay tickets críticos pendientes." /> : tickets.map((ticket) => (
+          {tickets.length === 0 ? <EmptyRow colSpan={4} message={t('noTicketsFound')} /> : tickets.map((ticket) => (
             <tr key={ticket.id} className="hover:bg-brand-50/50 dark:hover:bg-slate-800/50">
               <td className="max-w-xs px-4 py-3 font-medium">{ticket.title}</td>
               <td className="px-4 py-3">
-                {ticket.priority ? <span className={priorityBadge[ticket.priority]}>{priorityLabels[ticket.priority]}</span> : <span className="badge-gray">Por definir</span>}
+                {ticket.priority ? <span className={priorityBadge[ticket.priority]}>{t(priorityLabelKeys[ticket.priority])}</span> : <span className="badge-gray">{t('undefinedPriority')}</span>}
               </td>
-              <td className="px-4 py-3"><span className={statusBadge[ticket.status]}>{statusLabels[ticket.status]}</span></td>
-              <td className="px-4 py-3">{ticket.technician?.name || 'Sin asignar'}</td>
+              <td className="px-4 py-3"><span className={statusBadge[ticket.status]}>{t(statusLabelKeys[ticket.status])}</span></td>
+              <td className="px-4 py-3">{ticket.technician?.name || t('withoutAssignment')}</td>
             </tr>
           ))}
         </tbody>
@@ -106,19 +111,21 @@ export function CriticalTicketsTable({ tickets }: { tickets: Ticket[] }) {
 }
 
 export function MaintenanceAssetsTable({ assets }: { assets: Asset[] }) {
+  const { t } = useLanguage();
+
   return (
-    <TableShell title="Activos en mantenimiento">
+    <TableShell title={t('pendingMaintenance')}>
       <table className="min-w-[560px] w-full text-sm">
         <thead>
           <tr className="border-b text-left text-slate-500">
-            <th className="px-4 py-3">Código</th>
-            <th className="px-4 py-3">Equipo</th>
-            <th className="px-4 py-3">Ubicación</th>
-            <th className="px-4 py-3">Asignado</th>
+            <th className="px-4 py-3">{t('code')}</th>
+            <th className="px-4 py-3">{t('equipment')}</th>
+            <th className="px-4 py-3">{t('location')}</th>
+            <th className="px-4 py-3">{t('assigned')}</th>
           </tr>
         </thead>
         <tbody className="divide-y">
-          {assets.length === 0 ? <EmptyRow colSpan={4} message="No hay activos en mantenimiento." /> : assets.map((asset) => (
+          {assets.length === 0 ? <EmptyRow colSpan={4} message={t('noAssetsFound')} /> : assets.map((asset) => (
             <tr key={asset.id} className="hover:bg-brand-50/50 dark:hover:bg-slate-800/50">
               <td className="px-4 py-3 font-medium">{asset.internalCode}</td>
               <td className="px-4 py-3">{asset.brand} {asset.model}</td>
@@ -133,19 +140,21 @@ export function MaintenanceAssetsTable({ assets }: { assets: Asset[] }) {
 }
 
 export function NetworkPointsTable({ points }: { points: NetworkPoint[] }) {
+  const { t } = useLanguage();
+
   return (
-    <TableShell title="Puntos de red inactivos">
+    <TableShell title={t('networkInfrastructure')}>
       <table className="min-w-[560px] w-full text-sm">
         <thead>
           <tr className="border-b text-left text-slate-500">
-            <th className="px-4 py-3">Etiqueta</th>
-            <th className="px-4 py-3">Ubicación</th>
+            <th className="px-4 py-3">{t('label')}</th>
+            <th className="px-4 py-3">{t('location')}</th>
             <th className="px-4 py-3">Patch panel</th>
             <th className="px-4 py-3">Switch</th>
           </tr>
         </thead>
         <tbody className="divide-y">
-          {points.length === 0 ? <EmptyRow colSpan={4} message="No hay puntos de red inactivos." /> : points.map((point) => (
+          {points.length === 0 ? <EmptyRow colSpan={4} message={t('noNetworkFound')} /> : points.map((point) => (
             <tr key={point.id} className="hover:bg-brand-50/50 dark:hover:bg-slate-800/50">
               <td className="px-4 py-3 font-medium">{point.label}</td>
               <td className="px-4 py-3">{point.location}</td>

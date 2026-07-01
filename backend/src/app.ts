@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
 import { config } from './config';
 import { sequelize, testConnection } from './database/connection';
 import { setupAssociations } from './database/models/associations';
@@ -16,6 +17,7 @@ setupAssociations();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/api/uploads', express.static(path.resolve(__dirname, '../uploads')));
 
 app.use('/api/v1', routes);
 app.use('/api/dashboard', dashboardHandler);

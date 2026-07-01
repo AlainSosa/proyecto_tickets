@@ -37,7 +37,7 @@ export function setupAssociations(): void {
   Extension.belongsTo(User, { foreignKey: 'assignedTo', as: 'assignedUser' });
 
   Asset.hasMany(Maintenance, { foreignKey: 'assetId', as: 'maintenances' });
-  Maintenance.belongsTo(Asset, { foreignKey: 'assetId' });
+  Maintenance.belongsTo(Asset, { foreignKey: 'assetId', as: 'asset' });
   User.hasMany(Maintenance, { foreignKey: 'technicianId', as: 'maintenances' });
   Maintenance.belongsTo(User, { foreignKey: 'technicianId', as: 'technician' });
 }

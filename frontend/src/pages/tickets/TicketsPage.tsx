@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePaginatedData } from '../../hooks/usePaginatedData';
 import { DataTable, Column } from '../../components/ui/DataTable';
@@ -10,7 +10,7 @@ import { QuickReportButton, QuickReportColumn } from '../../components/ui/QuickR
 import { useAuth } from '../../context/AuthContext';
 import { Ticket, TicketPriority, User } from '../../types';
 import api from '../../services/api';
-import { Plus, RefreshCw, Send, Clock, CheckCircle2 } from 'lucide-react';
+import { Plus, RefreshCw, Send, CheckCircle2, FileUp, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../context/LanguageContext';
 import { DEFAULT_INSTITUTIONAL_AREA, InstitutionalArea } from '../../constants/institutionalAreas';
@@ -30,21 +30,47 @@ function UserTicketForm({ onCreated }: { onCreated: () => void }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const location = user?.area || DEFAULT_INSTITUTIONAL_AREA;
-  const [attachments, setAttachments] = useState('');
+  const [attachments, setAttachments] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const { t } = useLanguage();
+
+  const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(e.target.files || []);
+    if (!selectedFiles.length) return;
+
+    const nextFiles = [...attachments, ...selectedFiles].slice(0, 5);
+    if (attachments.length + selectedFiles.length > 5) {
+      toast.error(t('maxAttachmentsError'));
+    }
+    setAttachments(nextFiles);
+    e.target.value = '';
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments((current) => current.filter((_, fileIndex) => fileIndex !== index));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !description.trim() || !location.trim()) return;
     setIsSubmitting(true);
     try {
-      const attachmentList = attachments.split('\n').map((item) => item.trim()).filter(Boolean);
-      await api.post('/tickets', { title, description, category: 'Otros', location, attachments: attachmentList });
+      const formData = new FormData();
+      formData.append('title', title);
+      formData.append('description', description);
+      formData.append('category', 'Otros');
+      formData.append('location', location);
+      attachments.forEach((file) => formData.append('attachments', file));
+
+      await api.post('/tickets', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
       toast.success(t('requestSent'));
       setTitle('');
       setDescription('');
-      setAttachments('');
+      setAttachments([]);
+      if (fileInputRef.current) fileInputRef.current.value = '';
       onCreated();
     } catch {
       toast.error(t('requestError'));
@@ -91,13 +117,44 @@ function UserTicketForm({ onCreated }: { onCreated: () => void }) {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Evidencias o adjuntos</label>
-          <textarea
-            value={attachments}
-            onChange={(e) => setAttachments(e.target.value)}
-            className="input min-h-[80px]"
-            placeholder="Pega un enlace por línea, por ejemplo capturas o documentos compartidos"
-          />
+          <label className="block text-sm font-medium mb-1">{t('attachments')}</label>
+          <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-900/40">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              onChange={handleAttachmentChange}
+              className="hidden"
+              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="btn-secondary gap-2"
+              disabled={attachments.length >= 5}
+            >
+              <FileUp className="h-4 w-4" />
+              {t('selectFiles')}
+            </button>
+            <p className="mt-2 text-xs text-slate-500">{t('maxAttachmentsHint')}</p>
+            {attachments.length > 0 && (
+              <ul className="mt-3 space-y-2">
+                {attachments.map((file, index) => (
+                  <li key={`${file.name}-${file.lastModified}`} className="flex items-center justify-between gap-3 rounded-md bg-white px-3 py-2 text-sm shadow-sm dark:bg-slate-800">
+                    <span className="truncate">{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeAttachment(index)}
+                      className="rounded p-1 text-slate-500 hover:bg-slate-100 hover:text-red-600 dark:hover:bg-slate-700"
+                      aria-label={`${t('removeFile')} ${file.name}`}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
         <div className="flex items-center justify-end">
           <button type="submit" disabled={isSubmitting} className="btn-primary gap-2">
@@ -106,79 +163,6 @@ function UserTicketForm({ onCreated }: { onCreated: () => void }) {
           </button>
         </div>
       </form>
-    </div>
-  );
-}
-
-function UserTicketList() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const { t, locale } = useLanguage();
-  const { data, page, totalPages, isLoading, setPage, refetch } = usePaginatedData<Ticket>({
-    endpoint: '/tickets',
-    filters: user ? { requestedBy: String(user.id) } : {},
-  });
-
-  const columns: Column<Ticket>[] = [
-    { header: '#', accessor: 'id', className: 'w-12' },
-    { header: t('title'), accessor: 'title' },
-    { header: 'Categoría', accessor: 'category' },
-    { header: t('location'), accessor: 'location' },
-    {
-      header: t('status'),
-      accessor: (ticket) => (
-        <span className={getTicketStatusBadge(ticket.status)}>
-          {t(getTicketStatusLabelKey(ticket.status))}
-        </span>
-      ),
-    },
-    {
-      header: t('priority'),
-      accessor: (ticket) => (
-        <span className={ticket.priority === 'critical' || ticket.priority === 'high' ? 'badge-red' : ticket.priority === 'medium' ? 'badge-yellow' : 'badge-gray'}>
-          {ticket.priority ? t(priorityLabelKeys[ticket.priority]) : t('undefinedPriority')}
-        </span>
-      ),
-    },
-    {
-      header: t('technician'),
-      accessor: (ticket) => ticket.technician?.name || t('withoutAssignment'),
-    },
-    {
-      header: t('created'),
-      accessor: (ticket) => new Date(ticket.createdAt).toLocaleDateString(locale),
-    },
-    {
-      header: '',
-      accessor: (ticket) => ticket.status === 'resolved'
-        ? <CheckCircle2 className="h-5 w-5 text-green-600" aria-label={t('resolved')} />
-        : null,
-      className: 'w-12',
-    },
-  ];
-
-  const reportColumns: QuickReportColumn<Ticket>[] = [
-    { header: '#', value: (ticket) => ticket.id },
-    { header: t('title'), value: (ticket) => ticket.title },
-    { header: 'Categoría', value: (ticket) => ticket.category },
-    { header: t('location'), value: (ticket) => ticket.location },
-    { header: t('status'), value: (ticket) => t(getTicketStatusLabelKey(ticket.status)) },
-    { header: t('priority'), value: (ticket) => ticket.priority ? t(priorityLabelKeys[ticket.priority]) : t('undefinedPriority') },
-    { header: t('technician'), value: (ticket) => ticket.technician?.name || t('withoutAssignment') },
-    { header: t('created'), value: (ticket) => new Date(ticket.createdAt).toLocaleDateString(locale) },
-  ];
-
-  return (
-    <div>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2 text-lg font-semibold">
-          <Clock className="h-5 w-5 text-brand-600" />
-          {t('myRequests')}
-        </h2>
-        <QuickReportButton title={t('myRequests')} rows={data} columns={reportColumns} disabled={isLoading} />
-      </div>
-      <DataTable columns={columns} data={data} isLoading={isLoading} onRowClick={(ticket) => navigate(`/tickets/${ticket.id}`)} emptyMessage={t('noRequests')} />
-      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
     </div>
   );
 }
@@ -461,7 +445,7 @@ function TicketFormModal({ ticket, technicians, onClose, onSaved }: TicketFormPr
         </div>
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1">Evidencias o adjuntos</label>
+        <label className="block text-sm font-medium mb-1">{t('attachments')}</label>
         <textarea value={attachments} onChange={(e) => setAttachments(e.target.value)} className="input min-h-[80px]" placeholder="Un enlace por línea" />
       </div>
       <div className="grid grid-cols-2 gap-4">
@@ -495,17 +479,11 @@ function TicketFormModal({ ticket, technicians, onClose, onSaved }: TicketFormPr
 
 export function TicketsPage() {
   const { user } = useAuth();
-  const [refreshKey, setRefreshKey] = useState(0);
 
   if (!user) return null;
 
   if (user.role === 'user') {
-    return (
-      <div className="space-y-8">
-        <UserTicketForm onCreated={() => setRefreshKey((k) => k + 1)} />
-        <UserTicketList key={refreshKey} />
-      </div>
-    );
+    return <UserTicketForm onCreated={() => {}} />;
   }
 
   if (user.role === 'technician') {

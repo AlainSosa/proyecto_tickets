@@ -1,10 +1,20 @@
 import { Download, FileText, Printer, X } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 export interface QuickReportColumn<T> {
   header: string;
   value: (row: T) => string | number | null | undefined;
+}
+
+interface ReportTextOptions {
+  emptyMessage?: string;
+  systemName?: string;
+  generatedAtLabel?: string;
+  generatedByLabel?: string;
+  printSavePdfLabel?: string;
+  lang?: string;
 }
 
 interface QuickReportButtonProps<T> {
@@ -23,9 +33,9 @@ export function escapeHtml(value: string | number | null | undefined) {
     .replace(/'/g, '&#039;');
 }
 
-export function buildReportTable<T>(rows: T[], columns: QuickReportColumn<T>[]) {
+export function buildReportTable<T>(rows: T[], columns: QuickReportColumn<T>[], options: ReportTextOptions = {}) {
   if (!rows.length) {
-    return '<p class="empty">No hay datos disponibles para este reporte.</p>';
+    return `<p class="empty">${escapeHtml(options.emptyMessage || 'No hay datos disponibles para este reporte.')}</p>`;
   }
 
   return `
@@ -48,7 +58,7 @@ export function buildReportTable<T>(rows: T[], columns: QuickReportColumn<T>[]) 
   `;
 }
 
-export function buildReportHeader(title: string, generatedAt = new Date().toLocaleString(), generatedBy?: string) {
+export function buildReportHeader(title: string, generatedAt = new Date().toLocaleString(), generatedBy?: string, options: ReportTextOptions = {}) {
   return `
     <header class="report-header">
       <div class="report-brand">
@@ -56,25 +66,25 @@ export function buildReportHeader(title: string, generatedAt = new Date().toLoca
           <span></span>
         </div>
         <div>
-          <p class="report-kicker">Sistema de Gestión de Soporte Técnico</p>
+          <p class="report-kicker">${escapeHtml(options.systemName || 'Sistema de Gestión de Soporte Técnico')}</p>
           <h1>${escapeHtml(title)}</h1>
           <p class="report-subtitle">Embaixada do Brasil</p>
         </div>
       </div>
       <div class="report-meta">
-        <span>Generado el</span>
+        <span>${escapeHtml(options.generatedAtLabel || 'Generado el')}</span>
         <strong>${escapeHtml(generatedAt)}</strong>
-        ${generatedBy ? `<span class="report-user-label">Generado por</span><strong>${escapeHtml(generatedBy)}</strong>` : ''}
+        ${generatedBy ? `<span class="report-user-label">${escapeHtml(options.generatedByLabel || 'Generado por')}</span><strong>${escapeHtml(generatedBy)}</strong>` : ''}
       </div>
     </header>
   `;
 }
 
-export function buildPrintableReportDocument(title: string, body: string, generatedBy?: string) {
+export function buildPrintableReportDocument(title: string, body: string, generatedBy?: string, options: ReportTextOptions = {}) {
   const generatedAt = new Date().toLocaleString();
   return `
     <!doctype html>
-    <html lang="es">
+    <html lang="${escapeHtml(options.lang || 'es')}">
       <head>
         <meta charset="utf-8" />
         <title>${escapeHtml(title)}</title>
@@ -227,10 +237,10 @@ export function buildPrintableReportDocument(title: string, body: string, genera
       </head>
       <body>
         <main class="page">
-          ${buildReportHeader(title, generatedAt, generatedBy)}
+          ${buildReportHeader(title, generatedAt, generatedBy, options)}
           ${body}
           <div class="actions">
-            <button onclick="window.print()">Imprimir / Guardar PDF</button>
+            <button onclick="window.print()">${escapeHtml(options.printSavePdfLabel || 'Imprimir / Guardar PDF')}</button>
           </div>
         </main>
       </body>
@@ -238,8 +248,8 @@ export function buildPrintableReportDocument(title: string, body: string, genera
   `;
 }
 
-export function openPrintableReport(title: string, body: string, generatedBy?: string) {
-  const reportHtml = buildPrintableReportDocument(title, body, generatedBy);
+export function openPrintableReport(title: string, body: string, generatedBy?: string, options: ReportTextOptions = {}) {
+  const reportHtml = buildPrintableReportDocument(title, body, generatedBy, options);
 
   const reportWindow = window.open('', '_blank');
   if (!reportWindow) return;
@@ -258,7 +268,16 @@ export function QuickReportButton<T>({
 }: QuickReportButtonProps<T>) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const { user } = useAuth();
-  const body = buildReportTable(rows, columns);
+  const { t, language } = useLanguage();
+  const reportOptions: ReportTextOptions = {
+    emptyMessage: t('noReportData'),
+    systemName: t('reportSystemName'),
+    generatedAtLabel: language === 'pt' ? 'Gerado em' : 'Generado el',
+    generatedByLabel: t('generatedBy'),
+    printSavePdfLabel: t('printSavePdf'),
+    lang: language === 'pt' ? 'pt-BR' : 'es',
+  };
+  const body = buildReportTable(rows, columns, reportOptions);
   const generatedBy = user ? `${user.name} (${user.email})` : undefined;
 
   return (
@@ -270,24 +289,24 @@ export function QuickReportButton<T>({
         className="btn-secondary gap-2"
       >
         <FileText className="h-4 w-4" />
-        Exportar PDF
+        {t('downloadReport')}
       </button>
       {isPreviewOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 p-4">
           <div className="mx-auto flex max-w-6xl flex-col items-center gap-4">
             <div className="flex w-[210mm] max-w-full flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-lg dark:border-slate-700 dark:bg-slate-900">
               <div>
-                <p className="text-sm font-semibold text-slate-900 dark:text-white">Vista previa</p>
+                <p className="text-sm font-semibold text-slate-900 dark:text-white">{t('preview')}</p>
                 <p className="text-xs text-slate-500 dark:text-slate-400">{title}</p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={() => openPrintableReport(title, body, generatedBy)} className="btn-secondary gap-2">
+                <button type="button" onClick={() => openPrintableReport(title, body, generatedBy, reportOptions)} className="btn-secondary gap-2">
                   <Download className="h-4 w-4" />
-                  Descargar PDF
+                  {t('downloadReport')}
                 </button>
-                <button type="button" onClick={() => openPrintableReport(title, body, generatedBy)} className="btn-primary gap-2">
+                <button type="button" onClick={() => openPrintableReport(title, body, generatedBy, reportOptions)} className="btn-primary gap-2">
                   <Printer className="h-4 w-4" />
-                  Imprimir
+                  {t('print')}
                 </button>
                 <button type="button" onClick={() => setIsPreviewOpen(false)} className="btn-secondary p-2">
                   <X className="h-4 w-4" />
@@ -298,7 +317,7 @@ export function QuickReportButton<T>({
             <div className="mx-auto min-h-[297mm] w-[210mm] max-w-full overflow-hidden bg-white p-[18mm] text-slate-900 shadow-2xl">
               <ReportPreviewStyles />
               <div className="border-t-[6px] border-brand-600 pt-6">
-                <div dangerouslySetInnerHTML={{ __html: buildReportHeader(title, undefined, generatedBy) }} />
+                <div dangerouslySetInnerHTML={{ __html: buildReportHeader(title, undefined, generatedBy, reportOptions) }} />
                 <div className="report-preview-content" dangerouslySetInnerHTML={{ __html: body }} />
               </div>
             </div>

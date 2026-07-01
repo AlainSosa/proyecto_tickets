@@ -5,14 +5,19 @@ import { Pagination } from '../../components/ui/Pagination';
 import { SearchInput } from '../../components/ui/SearchInput';
 import { Modal } from '../../components/ui/Modal';
 import { QuickReportButton, QuickReportColumn } from '../../components/ui/QuickReportButton';
-import { Maintenance } from '../../types';
+import { Asset, Maintenance } from '../../types';
 import api from '../../services/api';
 import { Plus, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useLanguage } from '../../context/LanguageContext';
 
 const typeLabelKeys = { preventive: 'preventive', corrective: 'corrective' } as const;
+const assetTypeLabelKeys = { computer: 'computer', laptop: 'laptop', printer: 'printer', ups: 'ups', switch: 'switch', router: 'router', ip_phone: 'ipPhone', monitor: 'monitor', other: 'other' } as const;
 const typeBadge: Record<string, string> = { preventive: 'badge-blue', corrective: 'badge-yellow' };
+
+function formatAsset(asset: Asset, t: ReturnType<typeof useLanguage>['t']) {
+  return `${asset.internalCode} - ${t(assetTypeLabelKeys[asset.type])} - ${asset.brand} ${asset.model}`;
+}
 
 export function MaintenancePage() {
   const [search, setSearch] = useState('');
@@ -28,7 +33,15 @@ export function MaintenancePage() {
   const { data, page, totalPages, isLoading, setPage, refetch } = usePaginatedData<Maintenance>({ endpoint: '/maintenance', filters });
 
   const columns: Column<Maintenance>[] = [
-    { header: t('equipment'), accessor: (m) => m.asset ? `${m.asset.internalCode} - ${m.asset.brand}` : '-' },
+    {
+      header: t('equipment'),
+      accessor: (m) => m.asset ? (
+        <div className="min-w-48">
+          <p className="font-medium text-primary-900 dark:text-slate-100">{m.asset.internalCode}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{t(assetTypeLabelKeys[m.asset.type])} - {m.asset.brand} {m.asset.model}</p>
+        </div>
+      ) : '-',
+    },
     { header: t('type'), accessor: (m) => <span className={typeBadge[m.type]}>{t(typeLabelKeys[m.type])}</span> },
     { header: t('scheduled'), accessor: (m) => m.scheduledDate ? new Date(m.scheduledDate).toLocaleDateString(locale) : '-' },
     { header: t('performed'), accessor: (m) => m.performedDate ? new Date(m.performedDate).toLocaleDateString(locale) : t('pending') },
@@ -37,7 +50,7 @@ export function MaintenancePage() {
   ];
 
   const reportColumns: QuickReportColumn<Maintenance>[] = [
-    { header: t('equipment'), value: (m) => (m.asset ? `${m.asset.internalCode} - ${m.asset.brand}` : '-') },
+    { header: t('equipment'), value: (m) => (m.asset ? formatAsset(m.asset, t) : '-') },
     { header: t('type'), value: (m) => t(typeLabelKeys[m.type]) },
     { header: t('scheduled'), value: (m) => (m.scheduledDate ? new Date(m.scheduledDate).toLocaleDateString(locale) : '-') },
     { header: t('performed'), value: (m) => (m.performedDate ? new Date(m.performedDate).toLocaleDateString(locale) : t('pending')) },
@@ -83,8 +96,17 @@ export function MaintenancePage() {
 
 function MaintenanceFormModal({ isOpen, onClose, item, onSave }: { isOpen: boolean; onClose: () => void; item: Maintenance | null; onSave: (data: any) => void }) {
   const [form, setForm] = useState({ assetId: '', type: 'preventive', scheduledDate: '', performedDate: '', observations: '', nextMaintenanceDate: '' });
+  const [assets, setAssets] = useState<Asset[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { t } = useLanguage();
+
+  useEffect(() => {
+    if (!isOpen) return;
+    api.get('/assets', { params: { limit: 100 } })
+      .then((response) => setAssets(response.data?.data || []))
+      .catch(() => setAssets([]));
+  }, [isOpen]);
+
   useEffect(() => {
     if (isOpen) {
       setForm(item ? {
@@ -109,7 +131,15 @@ function MaintenanceFormModal({ isOpen, onClose, item, onSave }: { isOpen: boole
     <Modal isOpen={isOpen} onClose={onClose} title={item ? t('editMaintenance') : t('newMaintenance')} size="lg">
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          <div className="col-span-2"><label className="block text-sm font-medium mb-1">{t('assetId')}</label><input type="number" value={form.assetId} onChange={e => setForm({ ...form, assetId: e.target.value })} className="input" required /></div>
+          <div className="col-span-2">
+            <label className="block text-sm font-medium mb-1">{t('equipment')}</label>
+            <select value={form.assetId} onChange={e => setForm({ ...form, assetId: e.target.value })} className="input" required>
+              <option value="">{t('selectEquipment')}</option>
+              {assets.map((asset) => (
+                <option key={asset.id} value={asset.id}>{formatAsset(asset, t)}</option>
+              ))}
+            </select>
+          </div>
           <div><label className="block text-sm font-medium mb-1">{t('type')}</label><select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="input"><option value="preventive">{t('preventive')}</option><option value="corrective">{t('corrective')}</option></select></div>
           <div><label className="block text-sm font-medium mb-1">{t('scheduledDate')}</label><input type="date" value={form.scheduledDate} onChange={e => setForm({ ...form, scheduledDate: e.target.value })} className="input" /></div>
           <div><label className="block text-sm font-medium mb-1">{t('performedDate')}</label><input type="date" value={form.performedDate} onChange={e => setForm({ ...form, performedDate: e.target.value })} className="input" /></div>
