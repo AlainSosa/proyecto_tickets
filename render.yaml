@@ -8,8 +8,7 @@ services:
     runtime: node
     plan: free
     buildCommand: npm install --include=dev --prefix backend && npm install --include=dev --prefix frontend && npm run build --prefix frontend && npm run build --prefix backend
-    preDeployCommand: npm run migrate:prod --prefix backend && npm run seed:prod --prefix backend
-    startCommand: npm start --prefix backend
+    startCommand: npm run migrate:prod --prefix backend && npm run seed:prod --prefix backend && npm start --prefix backend
     envVars:
       - key: NODE_ENV
         value: production
