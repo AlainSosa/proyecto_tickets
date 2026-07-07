@@ -9,7 +9,9 @@
     "test": "npm run typecheck && npm run build",
     "start": "node dist/app.js",
     "migrate": "tsx src/database/migrate.ts",
+    "migrate:prod": "node dist/database/migrate.js",
     "seed": "tsx src/database/seed.ts",
+    "seed:prod": "node dist/database/seed.js",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit"
   },

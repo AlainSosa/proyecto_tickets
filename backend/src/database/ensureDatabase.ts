@@ -6,6 +6,10 @@ function quoteIdentifier(identifier: string): string {
 }
 
 export async function ensureDatabaseExists(): Promise<void> {
+  if (config.db.url) {
+    return;
+  }
+
   const adminConnection = new Sequelize('postgres', config.db.user, config.db.password, {
     host: config.db.host,
     port: config.db.port,

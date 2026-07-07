@@ -22,6 +22,12 @@ app.use('/api/uploads', express.static(path.resolve(__dirname, '../uploads')));
 app.use('/api/v1', routes);
 app.use('/api/dashboard', dashboardHandler);
 
+const frontendDistPath = path.resolve(__dirname, '../../frontend/dist');
+app.use(express.static(frontendDistPath));
+app.get('*', (_req, res) => {
+  res.sendFile(path.join(frontendDistPath, 'index.html'));
+});
+
 app.use(errorHandler);
 
 async function start(): Promise<void> {

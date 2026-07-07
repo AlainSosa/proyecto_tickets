@@ -1,0 +1,23 @@
+databases:
+  - name: soporte-postgres
+    plan: free
+
+services:
+  - type: web
+    name: soporte-tickets
+    runtime: node
+    plan: free
+    buildCommand: npm install --include=dev --prefix backend && npm install --include=dev --prefix frontend && npm run build --prefix frontend && npm run build --prefix backend
+    preDeployCommand: npm run migrate:prod --prefix backend && npm run seed:prod --prefix backend
+    startCommand: npm start --prefix backend
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: soporte-postgres
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 8h
