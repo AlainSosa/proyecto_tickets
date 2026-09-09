@@ -1,4 +1,5 @@
 export { User } from './User';
+export { AccessRequest } from './AccessRequest';
 export { Ticket } from './Ticket';
 export { TicketComment } from './TicketComment';
 export { TicketHistory } from './TicketHistory';

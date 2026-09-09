@@ -6,12 +6,14 @@ import networkPointHandler from '../handlers/network-point.handler';
 import extensionHandler from '../handlers/extension.handler';
 import maintenanceHandler from '../handlers/maintenance.handler';
 import userHandler from '../handlers/user.handler';
+import accessRequestHandler from '../handlers/access-request.handler';
 import dashboardHandler from '../handlers/dashboard.handler';
 import auditHandler from '../handlers/audit.handler';
 
 const router = Router();
 
 router.use('/auth', authHandler);
+router.use('/access-requests', accessRequestHandler);
 router.use('/tickets', ticketHandler);
 router.use('/assets', assetHandler);
 router.use('/network-points', networkPointHandler);

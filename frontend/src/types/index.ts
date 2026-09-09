@@ -11,6 +11,20 @@ export interface User {
   updatedAt: string;
 }
 
+export type AccessRequestStatus = 'pending' | 'approved' | 'rejected';
+
+export interface AccessRequest {
+  id: number;
+  name: string;
+  email: string;
+  area: InstitutionalArea;
+  phone: string | null;
+  message: string | null;
+  status: AccessRequestStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Ticket {
   id: number;
   title: string;

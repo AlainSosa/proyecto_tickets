@@ -17,6 +17,7 @@ import { TelephonyPage } from './pages/telephony/TelephonyPage';
 import { MaintenancePage } from './pages/maintenance/MaintenancePage';
 import { ReportsPage } from './pages/reports/ReportsPage';
 import { UsersPage } from './pages/users/UsersPage';
+import { AccessRequestsPage } from './pages/access/AccessRequestsPage';
 import { AuditPage } from './pages/audit/AuditPage';
 import { AutoCapitalizeTextInputs } from './components/shared/AutoCapitalizeTextInputs';
 
@@ -112,6 +113,14 @@ export default function App() {
                 element={
                   <ProtectedRoute roles={['admin']}>
                     <UsersPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/access-requests"
+                element={
+                  <ProtectedRoute roles={['admin']}>
+                    <AccessRequestsPage />
                   </ProtectedRoute>
                 }
               />

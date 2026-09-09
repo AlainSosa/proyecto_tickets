@@ -19,6 +19,7 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
   const navigate = useNavigate();
   const [notificationCount, setNotificationCount] = useState(0);
   const [notificationTickets, setNotificationTickets] = useState<Ticket[]>([]);
+  const [accessRequestCount, setAccessRequestCount] = useState(0);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
 
@@ -30,39 +31,51 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
 
     let isMounted = true;
 
-    const loadNotifications = async () => {
+    const refreshCount = async () => {
       try {
         const params =
           user.role === "admin"
             ? { page: 1, limit: 500, status: "pending", unassigned: true }
             : { page: 1, limit: 500, status: "pending", assignedTo: user.id };
 
-        const response = await api.get("/tickets", { params });
-        if (isMounted) {
-          const tickets = (response.data?.data || []) as Ticket[];
-          const seenNotifications = getSeenNotifications(user.id, user.role);
-          const unreadTickets = tickets.filter(
-            (ticket) => !seenNotifications.has(getNotificationKey(ticket))
-          );
-          setNotificationCount(unreadTickets.length);
-          setNotificationTickets(unreadTickets.slice(0, 8));
-        }
+        const [ticketsResponse, accessRequestsResponse] = await Promise.all([
+          api.get("/tickets", { params }),
+          user.role === "admin"
+            ? api.get("/access-requests", { params: { page: 1, limit: 1, status: "pending" } })
+            : Promise.resolve(null),
+        ]);
+
+        if (!isMounted) return;
+
+        const tickets = (ticketsResponse.data?.data || []) as Ticket[];
+        const seenNotifications = getSeenNotifications(user.id, user.role);
+        const unreadTickets = tickets.filter(
+          (ticket) => !seenNotifications.has(getNotificationKey(ticket))
+        );
+        const pendingRequests = accessRequestsResponse
+          ? (accessRequestsResponse.data?.meta?.total ?? 0)
+          : 0;
+
+        setNotificationTickets(unreadTickets.slice(0, 8));
+        setAccessRequestCount(pendingRequests);
+        setNotificationCount(unreadTickets.length + pendingRequests);
       } catch {
         if (isMounted) {
-          setNotificationCount(0);
           setNotificationTickets([]);
+          setAccessRequestCount(0);
+          setNotificationCount(0);
         }
       }
     };
 
-    loadNotifications();
-    const intervalId = window.setInterval(loadNotifications, 30000);
-    window.addEventListener("focus", loadNotifications);
+    refreshCount();
+    const intervalId = window.setInterval(refreshCount, 30000);
+    window.addEventListener("focus", refreshCount);
 
     return () => {
       isMounted = false;
       window.clearInterval(intervalId);
-      window.removeEventListener("focus", loadNotifications);
+      window.removeEventListener("focus", refreshCount);
     };
   }, [user]);
 
@@ -146,6 +159,25 @@ export function Navbar({ onToggleSidebar }: NavbarProps) {
               </div>
 
               <div className="max-h-96 overflow-y-auto">
+                {user.role === "admin" && accessRequestCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsNotificationsOpen(false);
+                      navigate("/access-requests");
+                    }}
+                    className="flex w-full items-center justify-between border-b border-slate-100 bg-brand-50/60 px-4 py-3 text-left transition hover:bg-brand-50 dark:border-slate-800 dark:bg-brand-900/20 dark:hover:bg-brand-900/30"
+                  >
+                    <div className="flex items-center gap-2">
+                      <UserRound className="h-4 w-4 text-brand-700 dark:text-brand-300" />
+                      <span className="text-sm font-medium text-primary-900 dark:text-slate-100">
+                        {t("accessRequests")}
+                      </span>
+                    </div>
+                    <span className="badge-red shrink-0">{accessRequestCount}</span>
+                  </button>
+                )}
+
                 {notificationTickets.length === 0 ? (
                   <div className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
                     {t("noNewNotifications")}

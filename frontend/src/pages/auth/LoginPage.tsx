@@ -7,6 +7,8 @@ import { useLanguage } from "../../context/LanguageContext";
 import { Modal } from "../../components/ui/Modal";
 import { AreaSelect } from "../../components/ui/AreaSelect";
 import { DEFAULT_INSTITUTIONAL_AREA, InstitutionalArea } from "../../constants/institutionalAreas";
+import api from "../../services/api";
+import toast from "react-hot-toast";
 
 interface TechnicianRequestForm {
   name: string;
@@ -39,14 +41,6 @@ export function LoginPage() {
   const { t } = useLanguage();
 
   useEffect(() => {
-    const rememberedEmail = localStorage.getItem("rememberedEmail");
-    if (rememberedEmail) {
-      setEmail(rememberedEmail);
-      setRememberMe(true);
-    }
-  }, []);
-
-  useEffect(() => {
     if (isAuthenticated) {
       navigate("/dashboard", { replace: true });
     }
@@ -75,11 +69,6 @@ export function LoginPage() {
 
     try {
       await login({ email, password }, rememberMe);
-      if (rememberMe) {
-        localStorage.setItem("rememberedEmail", email);
-      } else {
-        localStorage.removeItem("rememberedEmail");
-      }
       navigate("/dashboard", { replace: true });
     } catch (err: any) {
       setError(err.response?.data?.message || t("loginFailed"));
@@ -88,34 +77,28 @@ export function LoginPage() {
     }
   };
 
-  const handleTechnicianRequest = (e: FormEvent) => {
+  const handleTechnicianRequest = async (e: FormEvent) => {
     e.preventDefault();
     setIsSendingRequest(true);
 
-    const storedRequests = JSON.parse(
-      localStorage.getItem("adminAccessRequests") || "[]"
-    );
-    const nextRequest = {
-      ...requestForm,
-      type: "access",
-      createdAt: new Date().toISOString(),
-    };
-
-    localStorage.setItem(
-      "adminAccessRequests",
-      JSON.stringify([nextRequest, ...storedRequests])
-    );
-    setIsSendingRequest(false);
-    setRequestSent(true);
-    setRequestForm({ name: "", email: "", area: DEFAULT_INSTITUTIONAL_AREA, phone: "", message: "" });
+    try {
+      await api.post("/access-requests", requestForm);
+      setRequestSent(true);
+      setRequestForm({ name: "", email: "", area: DEFAULT_INSTITUTIONAL_AREA, phone: "", message: "" });
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || t("requestError"));
+    } finally {
+      setIsSendingRequest(false);
+    }
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#043b63] via-[#006b4f] to-[#009739] p-4">
+    <div className="relative min-h-screen flex flex-col overflow-hidden bg-gradient-to-br from-[#043b63] via-[#006b4f] to-[#009739] p-4 sm:p-6">
       <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle,_transparent_20%,_transparent_20%),linear-gradient(#ffffff_1px,transparent_1px),linear-gradient(90deg,#ffffff_1px,transparent_1px)] bg-[length:28px_28px]" />
 
+      <div className="relative flex flex-1 items-center justify-center py-6 sm:py-10">
       <div className="relative w-full max-w-md">
-        <div className="rounded-[28px] bg-gray-50/95 shadow-2xl px-8 py-8">
+        <div className="rounded-[28px] bg-gray-50/95 shadow-2xl px-6 py-6 sm:px-8 sm:py-8">
           <div className="mb-4 flex items-center justify-between rounded-2xl border border-gray-200 bg-white/80 px-4 py-3">
             <span className="text-sm font-medium text-gray-700">
               {t("selectLanguage")}
@@ -124,11 +107,11 @@ export function LoginPage() {
           </div>
 
           <div className="text-center">
-            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#009739] to-[#002776] shadow-lg">
-              <Globe2 className="h-9 w-9 text-white" />
+            <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-[#009739] to-[#002776] shadow-lg sm:h-16 sm:w-16">
+              <Globe2 className="h-8 w-8 text-white" />
             </div>
 
-            <h1 className="text-2xl font-semibold text-gray-800">
+            <h1 className="text-xl font-semibold text-gray-800 sm:text-2xl">
               {t("embassy")}
             </h1>
             <p className="mt-2 text-sm text-gray-500">{t("consularSystem")}</p>
@@ -146,7 +129,7 @@ export function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5" autoComplete="off">
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">
                 {t("emailOrCpf")}
@@ -160,7 +143,8 @@ export function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder={t("emailPlaceholder")}
                   required
-                  className="w-full rounded-2xl border border-gray-200 bg-white px-12 py-3.5 text-gray-700 outline-none transition focus:border-[#009739] focus:ring-4 focus:ring-green-100"
+                  autoComplete="off"
+                  className="w-full rounded-2xl border border-gray-200 bg-white px-12 py-3 text-gray-700 outline-none transition focus:border-[#009739] focus:ring-4 focus:ring-green-100"
                 />
               </div>
             </div>
@@ -178,7 +162,8 @@ export function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="w-full rounded-2xl border border-gray-200 bg-white px-12 py-3.5 pr-12 text-gray-700 outline-none transition focus:border-[#009739] focus:ring-4 focus:ring-green-100"
+                  autoComplete="new-password"
+                  className="w-full rounded-2xl border border-gray-200 bg-white px-12 py-3 pr-12 text-gray-700 outline-none transition focus:border-[#009739] focus:ring-4 focus:ring-green-100"
                 />
 
                 <button
@@ -206,7 +191,7 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full rounded-xl bg-gradient-to-r from-[#009739] to-[#00852f] py-3.5 font-semibold text-white shadow-lg transition hover:scale-[1.01] hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70"
+              className="w-full rounded-xl bg-gradient-to-r from-[#009739] to-[#00852f] py-3 font-semibold text-white shadow-lg transition hover:scale-[1.01] hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isLoading ? t("loggingIn") : t("login")}
             </button>
@@ -223,6 +208,7 @@ export function LoginPage() {
             </button>
           </p>
         </div>
+      </div>
       </div>
 
       <Modal
@@ -359,6 +345,10 @@ export function LoginPage() {
           </form>
         )}
       </Modal>
+
+      <footer className="relative flex justify-center px-4 pb-4 text-center text-xs text-white/60">
+        {t("copyright")}
+      </footer>
     </div>
   );
 }

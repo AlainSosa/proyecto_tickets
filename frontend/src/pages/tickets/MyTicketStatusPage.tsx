@@ -11,13 +11,6 @@ import { Ticket } from '../../types';
 import api from '../../services/api';
 import { getTicketStatusBadge, getTicketStatusLabelKey, TICKET_STATUSES } from '../../constants/ticketStatuses';
 
-const priorityLabelKeys = {
-  low: 'low',
-  medium: 'medium',
-  high: 'high',
-  critical: 'critical',
-} as const;
-
 export function MyTicketStatusPage() {
   const { user } = useAuth();
   const { t, locale } = useLanguage();
@@ -68,14 +61,6 @@ export function MyTicketStatusPage() {
       header: t('status'),
       accessor: (ticket) => <span className={getTicketStatusBadge(ticket.status)}>{t(getTicketStatusLabelKey(ticket.status))}</span>,
     },
-    {
-      header: t('priority'),
-      accessor: (ticket) => (
-        <span className={ticket.priority === 'critical' || ticket.priority === 'high' ? 'badge-red' : ticket.priority === 'medium' ? 'badge-yellow' : 'badge-gray'}>
-          {ticket.priority ? t(priorityLabelKeys[ticket.priority]) : t('undefinedPriority')}
-        </span>
-      ),
-    },
     { header: t('technician'), accessor: (ticket) => ticket.technician?.name || t('withoutAssignment') },
     { header: t('created'), accessor: (ticket) => new Date(ticket.createdAt).toLocaleDateString(locale) },
     { header: t('lastUpdate'), accessor: (ticket) => new Date(ticket.updatedAt).toLocaleDateString(locale) },
@@ -85,7 +70,6 @@ export function MyTicketStatusPage() {
     { header: 'ID', value: (ticket) => ticket.id },
     { header: t('title'), value: (ticket) => ticket.title },
     { header: t('status'), value: (ticket) => t(getTicketStatusLabelKey(ticket.status)) },
-    { header: t('priority'), value: (ticket) => ticket.priority ? t(priorityLabelKeys[ticket.priority]) : t('undefinedPriority') },
     { header: t('technician'), value: (ticket) => ticket.technician?.name || t('withoutAssignment') },
     { header: t('created'), value: (ticket) => new Date(ticket.createdAt).toLocaleDateString(locale) },
     { header: t('lastUpdate'), value: (ticket) => new Date(ticket.updatedAt).toLocaleDateString(locale) },

@@ -174,14 +174,21 @@ function TechnicianTicketList() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
+  const [requesterFilter, setRequesterFilter] = useState('');
+  const [users, setUsers] = useState<User[]>([]);
+
+  useEffect(() => {
+    api.get('/users', { params: { limit: 500 } }).then((r) => setUsers(r.data?.data || [])).catch(() => {});
+  }, []);
 
   const filters = useMemo(() => {
     const f: Record<string, string> = { assignedTo: String(user!.id) };
     if (search) f.search = search;
     if (statusFilter) f.status = statusFilter;
     if (locationFilter) f.location = locationFilter;
+    if (requesterFilter) f.requestedBy = requesterFilter;
     return f;
-  }, [search, statusFilter, locationFilter, user]);
+  }, [search, statusFilter, locationFilter, requesterFilter, user]);
 
   const { data, page, totalPages, isLoading, setPage, refetch } = usePaginatedData<Ticket>({
     endpoint: '/tickets',
@@ -254,6 +261,12 @@ function TechnicianTicketList() {
             <option key={ticketStatus} value={ticketStatus}>{t(getTicketStatusLabelKey(ticketStatus))}</option>
           ))}
         </select>
+        <select value={requesterFilter} onChange={(e) => setRequesterFilter(e.target.value)} className="input w-56" title={t('filterByUser')}>
+          <option value="">{t('allUsers')}</option>
+          {[...users].sort((a, b) => a.name.localeCompare(b.name)).map((u) => (
+            <option key={u.id} value={u.id}>{u.name}{u.area ? ` (${u.area})` : ''}</option>
+          ))}
+        </select>
         <AreaSelect value={locationFilter} onChange={setLocationFilter} includeEmpty className="input w-48" />
         <QuickReportButton title={t('assignedTickets')} rows={data} columns={reportColumns} disabled={isLoading} />
       </div>
@@ -271,12 +284,15 @@ function AdminTicketList() {
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
+  const [requesterFilter, setRequesterFilter] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [technicians, setTechnicians] = useState<User[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
 
   useEffect(() => {
     api.get('/users', { params: { role: 'technician', limit: 100 } }).then((r) => setTechnicians(r.data?.data || [])).catch(() => {});
+    api.get('/users', { params: { limit: 500 } }).then((r) => setUsers(r.data?.data || [])).catch(() => {});
   }, []);
 
   const filters = useMemo(() => {
@@ -285,8 +301,9 @@ function AdminTicketList() {
     if (statusFilter) f.status = statusFilter;
     if (priorityFilter) f.priority = priorityFilter;
     if (locationFilter) f.location = locationFilter;
+    if (requesterFilter) f.requestedBy = requesterFilter;
     return f;
-  }, [search, statusFilter, priorityFilter, locationFilter]);
+  }, [search, statusFilter, priorityFilter, locationFilter, requesterFilter]);
 
   const { data, page, totalPages, isLoading, setPage, refetch } = usePaginatedData<Ticket>({
     endpoint: '/tickets',
@@ -355,6 +372,12 @@ function AdminTicketList() {
           <option value="medium">{t('medium')}</option>
           <option value="high">{t('high')}</option>
           <option value="critical">{t('critical')}</option>
+        </select>
+        <select value={requesterFilter} onChange={(e) => setRequesterFilter(e.target.value)} className="input w-56" title={t('filterByUser')}>
+          <option value="">{t('allUsers')}</option>
+          {[...users].sort((a, b) => a.name.localeCompare(b.name)).map((u) => (
+            <option key={u.id} value={u.id}>{u.name}{u.area ? ` (${u.area})` : ''}</option>
+          ))}
         </select>
         <AreaSelect value={locationFilter} onChange={setLocationFilter} includeEmpty className="input w-48" />
         <button onClick={refetch} className="btn-secondary p-2"><RefreshCw className="h-4 w-4" /></button>

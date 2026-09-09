@@ -337,7 +337,7 @@ export function TicketDetailPage() {
 
   const orderedHistories = [...(ticket.histories || [])].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+  ).filter((history) => user?.role !== 'user' || history.field !== 'priority');
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -356,9 +356,11 @@ export function TicketDetailPage() {
           </div>
           <div className="flex gap-2">
             <span className={getTicketStatusBadge(ticket.status)}>{t(getTicketStatusLabelKey(ticket.status))}</span>
-            <span className={ticket.priority ? priorityBadge[ticket.priority] : 'badge-gray'}>
-              {ticket.priority ? t(priorityLabelKeys[ticket.priority]) : t('undefinedPriority')}
-            </span>
+            {user?.role !== 'user' && (
+              <span className={ticket.priority ? priorityBadge[ticket.priority] : 'badge-gray'}>
+                {ticket.priority ? t(priorityLabelKeys[ticket.priority]) : t('undefinedPriority')}
+              </span>
+            )}
           </div>
         </div>
 
@@ -467,19 +469,6 @@ export function TicketDetailPage() {
             <div className="grid gap-3 md:grid-cols-3">
               <button
                 type="button"
-                onClick={() => handleTechnicianStatusChange('in_progress')}
-                disabled={isActionSubmitting || ticket.status === 'in_progress'}
-                className={`rounded-lg border p-4 text-left transition ${
-                  ticket.status === 'in_progress'
-                    ? 'border-brand-500 bg-brand-50 text-brand-800 dark:border-brand-400 dark:bg-brand-900/20 dark:text-brand-200'
-                    : 'border-slate-200 hover:border-brand-300 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800'
-                }`}
-              >
-                <p className="text-sm font-semibold">{t('inProgress')}</p>
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">El trabajo técnico está activo.</p>
-              </button>
-              <button
-                type="button"
                 onClick={() => handleTechnicianStatusChange('pending')}
                 disabled={isActionSubmitting || ticket.status === 'pending'}
                 className={`rounded-lg border p-4 text-left transition ${
@@ -490,6 +479,19 @@ export function TicketDetailPage() {
               >
                 <p className="text-sm font-semibold">Pendiente</p>
                 <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">La atención está pendiente de continuar.</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => handleTechnicianStatusChange('in_progress')}
+                disabled={isActionSubmitting || ticket.status === 'in_progress'}
+                className={`rounded-lg border p-4 text-left transition ${
+                  ticket.status === 'in_progress'
+                    ? 'border-brand-500 bg-brand-50 text-brand-800 dark:border-brand-400 dark:bg-brand-900/20 dark:text-brand-200'
+                    : 'border-slate-200 hover:border-brand-300 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800'
+                }`}
+              >
+                <p className="text-sm font-semibold">{t('inProgress')}</p>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">El trabajo técnico está activo.</p>
               </button>
               <button
                 type="button"

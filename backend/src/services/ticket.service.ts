@@ -111,6 +111,8 @@ export class TicketService {
       where[Op.or] = [
         { title: { [Op.iLike]: `%${search}%` } },
         { description: { [Op.iLike]: `%${search}%` } },
+        { '$requester.name$': { [Op.iLike]: `%${search}%` } },
+        { '$requester.email$': { [Op.iLike]: `%${search}%` } },
       ];
     }
     if (params.requestedBy) where.requestedBy = params.requestedBy;

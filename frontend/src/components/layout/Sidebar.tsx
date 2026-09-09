@@ -7,6 +7,7 @@ import {
   Phone,
   Wrench,
   Users,
+  UserPlus,
   FileText,
   CircleCheckBig,
   ChevronLeft,
@@ -31,6 +32,7 @@ const links = [
   { to: '/maintenance', labelKey: 'maintenance', icon: Wrench, roles: ['admin', 'technician'] },
   { to: '/reports', labelKey: 'reports', icon: FileText, roles: ['admin', 'technician'] },
   { to: '/users', labelKey: 'users', icon: Users, roles: ['admin'] },
+  { to: '/access-requests', labelKey: 'accessRequests', icon: UserPlus, roles: ['admin'] },
   { to: '/audit', labelKey: 'audit', icon: ShieldCheck, roles: ['admin'] },
 ];
 
